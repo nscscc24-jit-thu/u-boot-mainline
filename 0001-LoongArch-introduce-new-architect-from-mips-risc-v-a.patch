@@ -1,0 +1,4771 @@
+From 36491ffb804207cde1a6c882f1f684b296bf9364 Mon Sep 17 00:00:00 2001
+From: nscscc24-jit-thu <zhaohy22@mails.tsinghua.edu.cn>
+Date: Sun, 25 Aug 2024 20:16:50 +0800
+Subject: [PATCH 1/4] LoongArch: introduce new architect from mips, risc-v and
+ u-boot la32r
+
+Signed-off-by: nscscc24-jit-thu <zhaohy22@mails.tsinghua.edu.cn>
+---
+ arch/Kconfig                                  |   9 +
+ arch/loongarch/Kconfig                        |  50 ++
+ arch/loongarch/Makefile                       |   9 +
+ arch/loongarch/Makefile.postlink              |  21 +
+ arch/loongarch/config.mk                      |  27 +
+ arch/loongarch/cpu/Makefile                   |   5 +
+ arch/loongarch/cpu/cpu.c                      |  51 ++
+ arch/loongarch/cpu/dram.c                     |  19 +
+ arch/loongarch/cpu/start.S                    | 321 ++++++++++
+ arch/loongarch/cpu/u-boot.lds                 | 133 +++++
+ arch/loongarch/dts/Makefile                   |  16 +
+ arch/loongarch/dts/la32r_chiplab.dts          |  73 +++
+ arch/loongarch/include/asm/asm-offsets.h      |  47 ++
+ arch/loongarch/include/asm/bitops.h           | 447 ++++++++++++++
+ arch/loongarch/include/asm/byteorder.h        |  22 +
+ arch/loongarch/include/asm/cache.h            |  34 ++
+ arch/loongarch/include/asm/cachectl.h         |  23 +
+ arch/loongarch/include/asm/cacheops.h         |  45 ++
+ arch/loongarch/include/asm/config.h           |   9 +
+ arch/loongarch/include/asm/dmw.h              |  23 +
+ arch/loongarch/include/asm/global_data.h      |  20 +
+ arch/loongarch/include/asm/gpio.h             |   1 +
+ arch/loongarch/include/asm/io.h               | 564 ++++++++++++++++++
+ arch/loongarch/include/asm/la-registers.h     |  46 ++
+ arch/loongarch/include/asm/la32r-csr.h        |  71 +++
+ arch/loongarch/include/asm/la32r-macros.h     | 125 ++++
+ arch/loongarch/include/asm/linkage.h          |   0
+ .../include/asm/mach-generic/ioremap.h        |  30 +
+ .../include/asm/mach-generic/mangle-port.h    |  49 ++
+ .../include/asm/mach-generic/spaces.h         |  61 ++
+ arch/loongarch/include/asm/pgtable-bits.h     | 190 ++++++
+ arch/loongarch/include/asm/posix_types.h      | 125 ++++
+ arch/loongarch/include/asm/processor.h        |  28 +
+ arch/loongarch/include/asm/ptrace.h           |  35 ++
+ arch/loongarch/include/asm/reboot.h           |  10 +
+ arch/loongarch/include/asm/relocs.h           |  25 +
+ arch/loongarch/include/asm/sections.h         |  18 +
+ arch/loongarch/include/asm/spl.h              |  33 +
+ arch/loongarch/include/asm/string.h           |  36 ++
+ arch/loongarch/include/asm/types.h            |  55 ++
+ arch/loongarch/include/asm/u-boot.h           |  26 +
+ arch/loongarch/include/asm/uart.h             |  80 +++
+ arch/loongarch/include/asm/unaligned.h        |  15 +
+ arch/loongarch/lib/Makefile                   |   5 +
+ arch/loongarch/lib/asm-offsets.c              |  48 ++
+ arch/loongarch/lib/bootm.c                    | 304 ++++++++++
+ arch/loongarch/lib/cache.c                    |  68 +++
+ arch/loongarch/lib/interrupts.c               |  20 +
+ arch/loongarch/lib/reloc.c                    | 272 +++++++++
+ arch/loongarch/lib/reset.c                    |  14 +
+ dts/Makefile                                  |   2 +-
+ include/image.h                               |   1 +
+ lib/Kconfig                                   |   4 +-
+ tools/.gitignore                              |   1 +
+ tools/Makefile                                |   1 +
+ tools/la32r-relocs.c                          | 515 ++++++++++++++++
+ 56 files changed, 4279 insertions(+), 3 deletions(-)
+ create mode 100644 arch/loongarch/Kconfig
+ create mode 100644 arch/loongarch/Makefile
+ create mode 100644 arch/loongarch/Makefile.postlink
+ create mode 100644 arch/loongarch/config.mk
+ create mode 100644 arch/loongarch/cpu/Makefile
+ create mode 100644 arch/loongarch/cpu/cpu.c
+ create mode 100644 arch/loongarch/cpu/dram.c
+ create mode 100644 arch/loongarch/cpu/start.S
+ create mode 100644 arch/loongarch/cpu/u-boot.lds
+ create mode 100644 arch/loongarch/dts/Makefile
+ create mode 100644 arch/loongarch/dts/la32r_chiplab.dts
+ create mode 100644 arch/loongarch/include/asm/asm-offsets.h
+ create mode 100644 arch/loongarch/include/asm/bitops.h
+ create mode 100644 arch/loongarch/include/asm/byteorder.h
+ create mode 100644 arch/loongarch/include/asm/cache.h
+ create mode 100644 arch/loongarch/include/asm/cachectl.h
+ create mode 100644 arch/loongarch/include/asm/cacheops.h
+ create mode 100644 arch/loongarch/include/asm/config.h
+ create mode 100644 arch/loongarch/include/asm/dmw.h
+ create mode 100644 arch/loongarch/include/asm/global_data.h
+ create mode 100644 arch/loongarch/include/asm/gpio.h
+ create mode 100644 arch/loongarch/include/asm/io.h
+ create mode 100644 arch/loongarch/include/asm/la-registers.h
+ create mode 100644 arch/loongarch/include/asm/la32r-csr.h
+ create mode 100644 arch/loongarch/include/asm/la32r-macros.h
+ create mode 100644 arch/loongarch/include/asm/linkage.h
+ create mode 100644 arch/loongarch/include/asm/mach-generic/ioremap.h
+ create mode 100644 arch/loongarch/include/asm/mach-generic/mangle-port.h
+ create mode 100644 arch/loongarch/include/asm/mach-generic/spaces.h
+ create mode 100644 arch/loongarch/include/asm/pgtable-bits.h
+ create mode 100644 arch/loongarch/include/asm/posix_types.h
+ create mode 100644 arch/loongarch/include/asm/processor.h
+ create mode 100644 arch/loongarch/include/asm/ptrace.h
+ create mode 100644 arch/loongarch/include/asm/reboot.h
+ create mode 100644 arch/loongarch/include/asm/relocs.h
+ create mode 100644 arch/loongarch/include/asm/sections.h
+ create mode 100644 arch/loongarch/include/asm/spl.h
+ create mode 100644 arch/loongarch/include/asm/string.h
+ create mode 100644 arch/loongarch/include/asm/types.h
+ create mode 100644 arch/loongarch/include/asm/u-boot.h
+ create mode 100644 arch/loongarch/include/asm/uart.h
+ create mode 100644 arch/loongarch/include/asm/unaligned.h
+ create mode 100644 arch/loongarch/lib/Makefile
+ create mode 100644 arch/loongarch/lib/asm-offsets.c
+ create mode 100644 arch/loongarch/lib/bootm.c
+ create mode 100644 arch/loongarch/lib/cache.c
+ create mode 100644 arch/loongarch/lib/interrupts.c
+ create mode 100644 arch/loongarch/lib/reloc.c
+ create mode 100644 arch/loongarch/lib/reset.c
+ create mode 100644 tools/la32r-relocs.c
+
+diff --git a/arch/Kconfig b/arch/Kconfig
+index abd406d488..36ffbf29bd 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -70,6 +70,14 @@ config ARM
+ 	select SUPPORT_ACPI
+ 	select SUPPORT_OF_CONTROL
+ 
++config LOONGARCH
++	bool "Loongarch architecture (Reduced Only)"
++	select HAVE_ARCH_IOREMAP
++	select SUPPORT_OF_CONTROL
++	select OF_CONTROL
++	select DM
++	select DM_EVENT
++
+ config M68K
+ 	bool "M68000 architecture"
+ 	select HAVE_PRIVATE_LIBGCC
+@@ -496,6 +504,7 @@ config SYS_NONCACHED_MEMORY
+ 
+ source "arch/arc/Kconfig"
+ source "arch/arm/Kconfig"
++source "arch/loongarch/Kconfig"
+ source "arch/m68k/Kconfig"
+ source "arch/microblaze/Kconfig"
+ source "arch/mips/Kconfig"
+diff --git a/arch/loongarch/Kconfig b/arch/loongarch/Kconfig
+new file mode 100644
+index 0000000000..e27f934048
+--- /dev/null
++++ b/arch/loongarch/Kconfig
+@@ -0,0 +1,50 @@
++menu "Loongarch architecture (Reduced Only)"
++	depends on LOONGARCH
++
++config SYS_ARCH
++	default "loongarch"
++
++choice
++	prompt "Target select"
++	default TARGET_LOONGARCH_CHIPLAB
++
++config TARGET_LOONGARCH_CHIPLAB
++	bool "Support Loongarch Chiplab SoC"
++
++endchoice
++
++config LA32R_L1_CACHE_SHIFT
++	int "L1 cache shift"
++	default "4"
++
++config SYS_ICACHE_LINE_SIZE
++	int "I-cache cache-line size"
++	default "16"
++	help
++	  The size of L1 Icache lines, if known at compile time.
++
++config SYS_DCACHE_LINE_SIZE
++	int "D-cache cache-line size"
++	default "16"
++	help
++	  The size of L1 Dcache lines, if known at compile time.
++
++config LOONGARCH_RELOCATION_TABLE_SIZE
++	hex "Relocation table size"
++	range 0x100 0x4000
++	default "0x4000"
++	---help---
++	  A table of relocation data will be appended to the U-Boot binary
++	  and parsed in relocate_code() to fix up all offsets in the relocated
++	  U-Boot.
++
++	  This option allows the amount of space reserved for the table to be
++	  adjusted in a range from 256 up to 64k. The default is 32k and should
++	  be ok in most cases. Reduce this value to shrink the size of U-Boot
++	  binary.
++
++	  The build will fail and a valid size suggested if this is too small.
++
++	  If unsure, leave at the default value.
++
++endmenu
+diff --git a/arch/loongarch/Makefile b/arch/loongarch/Makefile
+new file mode 100644
+index 0000000000..c6ae62633c
+--- /dev/null
++++ b/arch/loongarch/Makefile
+@@ -0,0 +1,9 @@
++# SPDX-License-Identifier: GPL-2.0+
++
++head-y := arch/loongarch/cpu/start.o
++
++libs-y += arch/loongarch/cpu/
++libs-y += arch/loongarch/lib/
++
++PLATFORM_CPPFLAGS += $(patsubst %,-I$(srctree)/%include,$(machdirs))
++PLATFORM_CPPFLAGS += $(arch-y) $(tune-y) $(cflags-y)
+diff --git a/arch/loongarch/Makefile.postlink b/arch/loongarch/Makefile.postlink
+new file mode 100644
+index 0000000000..5dbe4e52b9
+--- /dev/null
++++ b/arch/loongarch/Makefile.postlink
+@@ -0,0 +1,21 @@
++# SPDX-License-Identifier: GPL-2.0+
++#
++# Copyright (c) 2017 Imagination Technologies Ltd.
++
++PHONY := __archpost
++__archpost:
++
++-include include/config/auto.conf
++include scripts/Kbuild.include
++
++CMD_RELOCS = tools/la32r-relocs
++quiet_cmd_relocs = RELOCS  $@
++      cmd_relocs = $(CMD_RELOCS) $@
++
++u-boot: FORCE
++	@true
++	$(call if_changed,relocs)
++
++.PHONY: FORCE
++
++FORCE:
+diff --git a/arch/loongarch/config.mk b/arch/loongarch/config.mk
+new file mode 100644
+index 0000000000..3f5739f8ed
+--- /dev/null
++++ b/arch/loongarch/config.mk
+@@ -0,0 +1,27 @@
++# SPDX-License-Identifier: GPL-2.0+
++#
++# (C) Copyright 2003
++# Wolfgang Denk, DENX Software Engineering, wd@denx.de.
++
++32bit-emul		:= elf32loongarch
++64bit-emul		:= elf64loongarch
++32bit-bfd		:= elfNN-loongarch
++64bit-bfd		:= elfNN-loongarch
++PLATFORM_CPPFLAGS	+=
++PLATFORM_LDFLAGS	+=
++
++PLATFORM_CPPFLAGS	+= -mabi=ilp32s
++PLATFORM_LDFLAGS	+= -m $(32bit-emul)
++OBJCOPYFLAGS		+= -O $(32bit-bfd)
++CONFIG_STANDALONE_LOAD_ADDR	?= 0x00000000
++
++PLATFORM_ELFENTRY = "__start"
++PLATFORM_ELFFLAGS += -B loongarch $(OBJCOPYFLAGS)
++
++PLATFORM_CPPFLAGS		+= -G 0 -fno-pic
++PLATFORM_CPPFLAGS		+= -msoft-float
++PLATFORM_LDFLAGS		+= -G 0 -static -n -nostdlib
++PLATFORM_RELFLAGS		+= -ffunction-sections -fdata-sections
++LDFLAGS_FINAL			+= --emit-relocs --gc-sections
++
++LDFLAGS_STANDALONE		+= --gc-sections
+diff --git a/arch/loongarch/cpu/Makefile b/arch/loongarch/cpu/Makefile
+new file mode 100644
+index 0000000000..58cf71fd62
+--- /dev/null
++++ b/arch/loongarch/cpu/Makefile
+@@ -0,0 +1,5 @@
++# SPDX-License-Identifier: GPL-2.0+
++extra-y	= start.o
++
++obj-y += cpu.o
++obj-y += dram.o
+diff --git a/arch/loongarch/cpu/cpu.c b/arch/loongarch/cpu/cpu.c
+new file mode 100644
+index 0000000000..4d8637401c
+--- /dev/null
++++ b/arch/loongarch/cpu/cpu.c
+@@ -0,0 +1,51 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * (C) Copyright 2003
++ * Wolfgang Denk, DENX Software Engineering, <wd@denx.de>
++ */
++
++#include <common.h>
++#include <command.h>
++#include <linux/compiler.h>
++#include <asm/reboot.h>
++#include <asm/io.h>
++#include <hang.h>
++
++#if !CONFIG_IS_ENABLED(SYSRESET)
++void reset_cpu(void)
++{
++	printf("resetting ...\n");
++
++	printf("reset not supported yet\n");
++	hang();
++}
++#endif
++
++int print_cpuinfo(void)
++{
++#if CONFIG_IS_ENABLED(TARGET_LOONGARCH_CHIPLAB)
++	printf("LoongArch on Chiplab\n");
++#else
++    printf("LoongArch\n");
++#endif
++	return 0;
++}
++
++int arch_cpu_init(void)
++{
++	return 0;
++}
++
++int arch_misc_init(void)
++{
++	/* Here we set the segment displays by MMIO.
++	 * Refactor this if your design is different from us.
++	 */
++
++	#if 0
++	volatile uint32_t *bcd = (volatile uint32_t *)map_physmem((phys_addr_t)(0x1fd0f010), 0, MAP_NOCACHE);
++	*bcd = 0x20240818;
++	#endif
++
++	return 0;
++}
+diff --git a/arch/loongarch/cpu/dram.c b/arch/loongarch/cpu/dram.c
+new file mode 100644
+index 0000000000..dda55ac124
+--- /dev/null
++++ b/arch/loongarch/cpu/dram.c
+@@ -0,0 +1,19 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * Copyright (C) 2015-2016 Wills Wang <wills.wang@live.com>
++ */
++
++#include <common.h>
++#include <init.h>
++
++#if CONFIG_VAL(TARGET_LOONGARCH_CHIPLAB)
++#include <configs/la32r_chiplab.h>
++#endif
++
++DECLARE_GLOBAL_DATA_PTR;
++
++int dram_init(void)
++{
++    gd->ram_size = CFG_SYS_SDRAM_SIZE; /* in bytes */
++	return 0;
++}
+diff --git a/arch/loongarch/cpu/start.S b/arch/loongarch/cpu/start.S
+new file mode 100644
+index 0000000000..6bbcaff686
+--- /dev/null
++++ b/arch/loongarch/cpu/start.S
+@@ -0,0 +1,321 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++/*
++ *  Startup Code for LA32R CPU-core
++ *
++ *  Copyright (c) 2023 
++ */
++
++#include <asm-offsets.h>
++#include <config.h>
++#include <asm/cacheops.h>
++#include <asm/la32r-macros.h>
++#include <asm/la-registers.h>
++#include <asm/la32r-csr.h>
++#include <asm/dmw.h>
++#include <asm/uart.h>
++#include <generated/asm-offsets.h>
++
++#if CONFIG_VAL(TARGET_LOONGARCH_CHIPLAB)
++#include <configs/la32r_chiplab.h>
++#endif
++
++.macro setup_stack_gd
++    li.w	t0, -16
++    li.w	t1, CONFIG_VAL(SYS_INIT_SP_ADDR)
++    and		sp, t1, t0		# force 16 byte alignment
++    addi.w	sp, sp, -GD_SIZE		# reserve space for gd
++    and		sp, sp, t0		# force 16 byte alignment
++    add.w	x0, sp, zero			# save gd pointer
++
++    cacop HIT_WRITEBACK_INV_D, x0, 0
++    cacop HIT_WRITEBACK_INV_D, x0, 16
++    cacop HIT_WRITEBACK_INV_D, x0, 32
++    cacop HIT_WRITEBACK_INV_D, x0, 48
++    cacop HIT_WRITEBACK_INV_D, x0, 64
++    cacop HIT_WRITEBACK_INV_D, x0, 80
++    cacop HIT_WRITEBACK_INV_D, x0, 96
++    cacop HIT_WRITEBACK_INV_D, x0, 112
++    cacop HIT_WRITEBACK_INV_D, x0, 128
++    cacop HIT_WRITEBACK_INV_D, x0, 144
++    cacop HIT_WRITEBACK_INV_D, x0, 160
++    cacop HIT_WRITEBACK_INV_D, x0, 176
++    cacop HIT_WRITEBACK_INV_D, x0, 192
++    cacop HIT_WRITEBACK_INV_D, x0, 208
++    cacop HIT_WRITEBACK_INV_D, x0, 224
++    cacop HIT_WRITEBACK_INV_D, x0, 240
++    cacop HIT_WRITEBACK_INV_D, x0, 256
++
++#if CONFIG_VAL(SYS_MALLOC_F_LEN)
++	li.w	t2, CONFIG_VAL(SYS_MALLOC_F_LEN)
++	sub.w	sp, sp, t2		# reserve space for early malloc
++	and		sp, sp, t0		# force 16 byte alignment
++#endif
++	add.w	fp, sp, zero
++
++	/* Clear gd */
++	add.w	t0, x0, zero
++1:
++	st.w	zero, t0, 0
++	addi.w	t0, t0, 4
++	blt	t0, t1, 1b
++
++#if CONFIG_VAL(SYS_MALLOC_F_LEN)
++	st.w	sp, x0, GD_MALLOC_BASE
++#endif
++    cacop HIT_WRITEBACK_INV_D, x0, 0
++    cacop HIT_WRITEBACK_INV_D, x0, 16
++    cacop HIT_WRITEBACK_INV_D, x0, 32
++    cacop HIT_WRITEBACK_INV_D, x0, 48
++    cacop HIT_WRITEBACK_INV_D, x0, 64
++    cacop HIT_WRITEBACK_INV_D, x0, 80
++    cacop HIT_WRITEBACK_INV_D, x0, 96
++    cacop HIT_WRITEBACK_INV_D, x0, 112
++    cacop HIT_WRITEBACK_INV_D, x0, 128
++    cacop HIT_WRITEBACK_INV_D, x0, 144
++    cacop HIT_WRITEBACK_INV_D, x0, 160
++    cacop HIT_WRITEBACK_INV_D, x0, 176
++    cacop HIT_WRITEBACK_INV_D, x0, 192
++    cacop HIT_WRITEBACK_INV_D, x0, 208
++    cacop HIT_WRITEBACK_INV_D, x0, 224
++    cacop HIT_WRITEBACK_INV_D, x0, 240
++    cacop HIT_WRITEBACK_INV_D, x0, 256
++	.endm
++
++#define PRINTSTR(x) \
++    .section .rodata;98: .asciz x; .text; la a0, 98b; bl stringserial     
++#define PRINT_CSR(offset)	\
++	PRINTSTR("\r\ncsr 0x");	\
++	li.w	a0, offset;	\
++	bl	hexserial;	\
++	PRINTSTR(" ->0x");	\
++	csrrd	a0, offset;	\
++	bl	hexserial;	\
++	PRINTSTR("\r\n");
++
++#define PRINT_REG(name, reg)	\
++	PRINTSTR("\r\nREG "name);	\
++	PRINTSTR(" ->0x");	\
++	add.w   a0, reg, zero; \
++	bl	hexserial;	\
++	PRINTSTR("\r\n");
++
++ENTRY(_start)
++	/* U-Boot entry point */
++	bl	reset
++
++uncached:
++    nop 
++
++	.org 0x1000
++    li.w    sp, 0x5000000
++    addi.w  sp, sp, -20
++    st.w    ra, sp, 16
++    st.w    a0, sp, 12
++    st.w    a1, sp, 8
++    csrrd	t0, 0x7
++    st.w    t0, sp, 4
++
++	/* s0 in different stage should fixup */
++	la	a0, _start
++	li.w	a1, PHYS_TO_UNCACHED(0x1c000000)
++	sub.w	a0, a0, a1
++	li.w	a1, 0xffff0000
++	and	a0, a0, a1
++	beq	a0, s0, 1f
++	or	s0, zero, zero
++1:
++	and	s0, s0, a0
++
++	PRINTSTR("\r\nCPU Exception!\r\n")
++    ld.w    t5, sp, 16
++    PRINT_REG("ra", t5);
++    ld.w    t5, sp, 12
++    PRINT_REG("a0", t5);
++    ld.w    t5, sp, 8
++    PRINT_REG("a1", t5);
++    PRINT_CSR(0x0);
++    PRINT_CSR(0x1);
++	
++	PRINT_CSR(0x5);
++	PRINT_CSR(0x6);
++	PRINT_CSR(0x7);
++    PRINT_CSR(0x180);
++    PRINT_CSR(0x181);
++1:
++	b	1b
++
++reset:
++    la      s0, uncached 
++    sub.w   s0, ra, s0
++
++    li.w    t0, PHYS_TO_CACHED(0x1c001000)
++    csrwr   t0, csr_eentry
++    li.w    t0, 0x1c001000
++    csrwr   t0, csr_tlbrentry
++
++    /* cacheed window, cache attribute is set after */
++    li.w    t1, CACHED_MEMORY_ADDR | 0x9 
++    csrwr   t1, csr_dmw0 
++    /* uncacheed window, temporary, for copy u-boot to a0200000 */
++    li.w    t1, DIRECT_MAPPED_MEMORY_ADDR | 0x9
++    csrwr   t1, csr_dmw1
++
++    bl      initserial
++    bl      cache_init
++
++    /* enable DATF and start DMW by PG=1 */
++    li.w    t1, 0x30 
++    li.w    t2, 0x78
++    csrxchg t1, t2, csr_crmd
++
++    la      t0, _start 
++    la      t2, _end  
++    
++    add.w   t1, t0, s0 /*link addr to 0x1c000000*/
++
++    /*copy text section*/ 
++loop:
++    ld.w    t3, t1, 0 
++    st.w    t3, t0, 0 
++    addi.w  t0, t0, 4 
++    addi.w  t1, t1, 4 
++    bne     t2, t0, loop
++
++    li.w    t1, CACHED_MEMORY_ADDR | 0x19 //cache window 
++    csrwr   t1, csr_dmw0 
++
++    la      t0, c_main
++    jirl    zero, t0, 0
++c_main:
++    li.w    t1, UNCACHED_MEMORY_ADDR | 0x9  
++    csrwr   t1, csr_dmw1
++
++ 	/* Set up initial stack and global data */
++	setup_stack_gd
++
++    /* enable address translation */
++    li.w    t1, 0x10
++    csrwr   t1, csr_crmd 
++
++	add.w	a0, zero, zero		# a0 <-- boot_flags = 0
++	add.w	ra, zero,zero
++	b	board_init_f
++END(_start)
++
++/******************************************************
++ *used: a0~a4
++ ******************************************************/
++LEAF(cache_init)
++     li.w      t1, 256  #cycle 256
++     li.w      t0, 0x0
++1:
++     cacop   0x0, t0, 0x0  #0 way  icache
++     cacop   0x0, t0, 0x1  #1 way  icache
++     cacop   0x1, t0, 0x0  #0 way  dcache
++     cacop   0x1, t0, 0x1  #1 way  dcache 
++     addi.w  t0, t0, 1<<4
++     addi.w  t1, t1, -1
++     blt     zero, t1, 1b
++     /* cache_init_finish */
++     jirl    zero, ra, 0
++END(cache_init)
++
++/******************************************************
++ *used: a0~a2
++ ******************************************************/
++LEAF(tgt_putchar)
++    li.w    t0, COM0_BASE_ADDR
++1:
++    ld.b    t1, t0, NS16550_LSR
++    andi    t1, t1, LSR_TXRDY
++    beq     t1, zero, 1b
++
++    st.b    a0, t0, NS16550_DATA
++    jirl    zero, ra, 0
++END(tgt_putchar)
++
++LEAF(stringserial)
++    move    a2, ra
++    add.w   a1, a0, s0
++    ld.b    a0, a1, 0
++1:
++    beq     a0, zero, 2f
++    addi.w  a1, a1, 1
++    bl      tgt_putchar
++    ld.b    a0, a1, 0
++    b       1b
++2:
++    jirl    zero, a2, 0
++END(stringserial)
++
++/*****************************************************
++ *used: a0~a5
++ *****************************************************/
++LEAF(hexserial)
++     move    a2, ra
++     move    a1, a0
++     li.w    a3, 7
++1:
++     slli.w  a4, a3, 2
++     srl.w   a0, a1, a4
++     andi    a0, a0, 0xf
++     la      t0, hexchar
++     add.w   t0, t0, s0
++     add.w   t0, t0, a0
++     ld.b    a0, t0, 0
++     bl      tgt_putchar
++     addi.w  a3, a3, -1
++     bge     a3, zero, 1b
++     jirl    zero, a2, 0
++END(hexserial)
++
++LEAF(tgt_getchar)
++    li.w    t0, COM0_BASE_ADDR
++1:
++    ld.b    t1, t0, NS16550_LSR
++    andi    t1, t1, LSR_TXRDY
++    beq     t1, zero, 1b
++    ld.b    v0, t0, NS16550_DATA
++    jirl    zero, ra, 0
++END(tgt_getchar)
++
++LEAF(initserial)
++    /* COM0_BASE_ADDR:0x1fe001e0(LOONGSON_SOC) 0x1fe40000(BAIXIN_MEGA) */
++    li.w   t0, COM0_BASE_ADDR    
++1:
++    li.w   t1, FIFO_ENABLE|FIFO_RCV_RST|FIFO_XMT_RST|FIFO_TRIGGER_4
++    st.b   t1, t0, NS16550_FIFO
++
++ ##set baud rate
++    li.w    t1, CFCR_DLAB
++    st.b    t1, t0, NS16550_CFCR
++    /* Lc modify Baut 115200 33M */
++    li.w    t1, 0x12 
++    st.b    t1, t0, NS16550_DATA
++    srli.w  t1, t1, 8
++    st.b    t1, t0, NS16550_IER
++    li.w    t1, CFCR_8BITS
++    st.b    t1, t0, NS16550_CFCR
++
++    li.w    t1, CFCR_8BITS
++    st.b    t1, t0, NS16550_CFCR
++    li.w    t1, MCR_DTR|MCR_RTS
++    st.b    t1, t0, NS16550_MCR
++    li.w    t1, 0x0
++    st.b    t1, t0, NS16550_IER
++
++    #ifdef CONFIG_TARGET_LA32R_BAIXINMEGA_DEMO
++    /* uart int enable */
++    li.w    t0, CONFREG_BASE
++    li.w    t1, 0x1000
++    or      t0, t0, t1
++    li.w    t1, 0x1
++    st.w    t1, t0, 0x44 #EN
++    st.w    t1, t0, 0x50 #POL
++    #endif
++
++    jirl    zero, ra, 0
++END(initserial)
++    .section .rodata
++hexchar:
++     .ascii "0123456789abcdef"
+diff --git a/arch/loongarch/cpu/u-boot.lds b/arch/loongarch/cpu/u-boot.lds
+new file mode 100644
+index 0000000000..be6929ece3
+--- /dev/null
++++ b/arch/loongarch/cpu/u-boot.lds
+@@ -0,0 +1,133 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++/*
++ * (C) Copyright 2003
++ * Wolfgang Denk Engineering, <wd@denx.de>
++ */
++
++OUTPUT_ARCH(loongarch32)
++ENTRY(_start)
++SECTIONS
++{
++	. = 0x00000000;
++
++	. = ALIGN(4);
++	.text : {
++		__text_start = .;
++		*(.text*)
++		__text_end = .;
++	}
++
++	. = ALIGN(4);
++	.rodata : {
++		*(SORT_BY_ALIGNMENT(SORT_BY_NAME(.rodata*)))
++	}
++
++	. = ALIGN(4);
++	.data : {
++		*(.data*)
++	}
++
++	. = ALIGN(4);
++	.sdata : {
++		*(.sdata*)
++	}
++
++	. = ALIGN(4);
++	.__u_boot_list : {
++		KEEP(*(SORT(__u_boot_list*)));
++	}
++
++	. = ALIGN(4);
++	__image_copy_end = .;
++	__init_end = .;
++
++	.data.reloc : {
++		__rel_start = .;
++		/*
++		 * Space for relocation table
++		 * This needs to be filled so that the
++		 * la32r-reloc tool can overwrite the content.
++		 * An invalid value is left at the start of the
++		 * section to abort relocation if the table
++		 * has not been filled in.
++		 */
++		LONG(0xFFFFFFFF);
++		FILL(0);
++		. += CONFIG_LOONGARCH_RELOCATION_TABLE_SIZE - 4;
++	}
++
++	. = ALIGN(4);
++	_end = .;
++
++	.bss __rel_start (OVERLAY) : {
++		__bss_start = .;
++		*(.sbss.*)
++		*(.bss.*)
++		*(COMMON)
++		. = ALIGN(4);
++		__bss_end = .;
++	}
++
++	/* These mark the ABI of U-Boot for debuggers. */
++	.mdebug.abi32 : {
++		KEEP(*(.mdebug.abi32))
++	}
++	.mdebug.abi64 : {
++		KEEP(*(.mdebug.abi64))
++	}
++
++
++	/* Stabs debugging sections.  */
++	.stab 0 : { *(.stab) }
++	.stabstr 0 : { *(.stabstr) }
++	.stab.excl 0 : { *(.stab.excl) }
++	.stab.exclstr 0 : { *(.stab.exclstr) }
++	.stab.index 0 : { *(.stab.index) }
++	.stab.indexstr 0 : { *(.stab.indexstr) }
++	.comment 0 : { *(.comment) }
++
++	/*
++	 * DWARF debug sections.
++	 * Symbols in the DWARF debugging sections are relative to
++	 * the beginning of the section so we begin them at 0.
++	 */
++	/* DWARF 1 */
++	.debug 0 : { *(.debug) }
++	.line 0 : { *(.line) }
++	/* GNU DWARF 1 extensions */
++	.debug_srcinfo 0 : { *(.debug_srcinfo) }
++	.debug_sfnames 0 : { *(.debug_sfnames) }
++	/* DWARF 1.1 and DWARF 2 */
++	.debug_aranges 0 : { *(.debug_aranges) }
++	.debug_pubnames 0 : { *(.debug_pubnames) }
++	/* DWARF 2 */
++	.debug_info 0 : {
++		*(.debug_info
++		.gnu.linkonce.wi.*)
++	}
++	.debug_abbrev 0 : { *(.debug_abbrev) }
++	.debug_line 0 : { *(.debug_line) }
++	.debug_frame 0 : { *(.debug_frame) }
++	.debug_str 0 : { *(.debug_str) }
++	.debug_loc 0 : { *(.debug_loc) }
++	.debug_macinfo 0 : { *(.debug_macinfo) }
++	.debug_pubtypes 0 : { *(.debug_pubtypes) }
++	/* DWARF 3 */
++	.debug_ranges 0 : { *(.debug_ranges) }
++	/* GNU DWARF 2 extensions */
++	.debug_gnu_pubnames 0 : { *(.debug_gnu_pubnames) }
++	.debug_gnu_pubtypes 0 : { *(.debug_gnu_pubtypes) }
++	/* DWARF 4 */
++	.debug_types 0 : { *(.debug_types) }
++	/* DWARF 5 */
++	.debug_macro 0 : { *(.debug_macro) }
++	.debug_addr 0 : { *(.debug_addr) }
++
++	/DISCARD/ : {
++		/* ABI crap starts here */
++		*(.options)
++		*(.pdr)
++		*(.reginfo)
++		*(.eh_frame)
++	}
++}
+diff --git a/arch/loongarch/dts/Makefile b/arch/loongarch/dts/Makefile
+new file mode 100644
+index 0000000000..c503e438e2
+--- /dev/null
++++ b/arch/loongarch/dts/Makefile
+@@ -0,0 +1,16 @@
++# SPDX-License-Identifier: GPL-2.0+
++
++dtb-$(TARGET_LOONGARCH_CHIPLAB) += la32r_chiplab.dtb
++
++include $(srctree)/scripts/Makefile.dts
++
++targets += $(dtb-y)
++
++DTC_FLAGS += -R 4 -p 0x1000
++
++PHONY += dtbs
++dtbs: $(addprefix $(obj)/, $(dtb-y))
++	@:
++
++clean-files := *.dtb
++
+diff --git a/arch/loongarch/dts/la32r_chiplab.dts b/arch/loongarch/dts/la32r_chiplab.dts
+new file mode 100644
+index 0000000000..25f1151ad1
+--- /dev/null
++++ b/arch/loongarch/dts/la32r_chiplab.dts
+@@ -0,0 +1,73 @@
++// SPDX-License-Identifier: GPL-2.0
++/dts-v1/;
++
++#include <configs/la32r_chiplab.h>
++
++/ {
++	model = "loongson,la32r-chiplab";
++	compatible = "loongson,la32r-chiplab";
++	#address-cells = <1>;
++	#size-cells = <1>;
++
++	aliases {
++		serial0 = &uart0;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++		bootargs = "earlycon";
++	};
++
++	memory@0x0 {
++		name = "memory";
++		device_type = "memory";
++		reg = <DIRECT_MAPPED_MEMORY_ADDR CFG_SYS_SDRAM_SIZE>;
++	};
++
++	stable-counter {
++		compatible = "loongson,la32r-timer";
++		reg = <0x1fd0e000 0x10>;
++		timebase-frequency = <33000000>;
++	};
++
++	soc {
++		compatible = "simple-bus";
++		#address-cells = <1>;
++		#size-cells = <1>;
++
++		cpuic: interrupt-controller {
++			compatible = "loongson,cpu-interrupt-controller";
++			interrupt-controller;
++			#interrupt-cells = <1>;
++		};
++
++		extioiic: interrupt-controller@1fe11600 {
++			compatible = "loongson,extioi-interrupt-controller";
++			interrupt-controller;
++			#interrupt-cells = <1>;
++			interrupt-parent = <&cpuic>;
++			interrupts = <3>;
++			interrupt-names = "cascade";
++			vec_count=<128>;
++			misc_func=<0x100>;
++			eio_en_off=<27>;
++		};
++
++		uart0: serial@1fe00000 {
++			compatible = "snps,dw-apb-uart","ns16550a","ns16550";
++			reg = <0x1fe00000 0x1000>;
++			reg-offset = <0>;
++			reg-shift = <0>;
++			clock-frequency = <LA32R_CHIPLAB_APB_FREQ>;
++			current-speed = <115200>;
++			no-loopback-test;
++		};
++
++		gmac0: ethernet@1ff00000 {
++			compatible = "dec,dc2114x","dec,dmfe";
++			device_type = "network";
++			reg = <0x1ff00000 0x10000>;
++			mac-address = [ 00 98 76 64 32 19 ];
++		};
++	};
++};
+diff --git a/arch/loongarch/include/asm/asm-offsets.h b/arch/loongarch/include/asm/asm-offsets.h
+new file mode 100644
+index 0000000000..83a78a6754
+--- /dev/null
++++ b/arch/loongarch/include/asm/asm-offsets.h
+@@ -0,0 +1,47 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++
++#ifndef __ASM_OFFSETS_H__
++#define __ASM_OFFSETS_H__
++/*
++ * DO NOT MODIFY.
++ *
++ * This file was generated by Kbuild
++ */
++
++/* LA32R pt_regs offsets. */
++#define PT_R0 0 /* offsetof(struct pt_regs, regs[0])	 # */
++#define PT_R1 4 /* offsetof(struct pt_regs, regs[1])	 # */
++#define PT_R2 8 /* offsetof(struct pt_regs, regs[2])	 # */
++#define PT_R3 12 /* offsetof(struct pt_regs, regs[3])	 # */
++#define PT_R4 16 /* offsetof(struct pt_regs, regs[4])	 # */
++#define PT_R5 20 /* offsetof(struct pt_regs, regs[5])	 # */
++#define PT_R6 24 /* offsetof(struct pt_regs, regs[6])	 # */
++#define PT_R7 28 /* offsetof(struct pt_regs, regs[7])	 # */
++#define PT_R8 32 /* offsetof(struct pt_regs, regs[8])	 # */
++#define PT_R9 36 /* offsetof(struct pt_regs, regs[9])	 # */
++#define PT_R10 40 /* offsetof(struct pt_regs, regs[10])	 # */
++#define PT_R11 44 /* offsetof(struct pt_regs, regs[11])	 # */
++#define PT_R12 48 /* offsetof(struct pt_regs, regs[12])	 # */
++#define PT_R13 52 /* offsetof(struct pt_regs, regs[13])	 # */
++#define PT_R14 56 /* offsetof(struct pt_regs, regs[14])	 # */
++#define PT_R15 60 /* offsetof(struct pt_regs, regs[15])	 # */
++#define PT_R16 64 /* offsetof(struct pt_regs, regs[16])	 # */
++#define PT_R17 68 /* offsetof(struct pt_regs, regs[17])	 # */
++#define PT_R18 72 /* offsetof(struct pt_regs, regs[18])	 # */
++#define PT_R19 76 /* offsetof(struct pt_regs, regs[19])	 # */
++#define PT_R20 80 /* offsetof(struct pt_regs, regs[20])	 # */
++#define PT_R21 84 /* offsetof(struct pt_regs, regs[21])	 # */
++#define PT_R22 88 /* offsetof(struct pt_regs, regs[22])	 # */
++#define PT_R23 92 /* offsetof(struct pt_regs, regs[23])	 # */
++#define PT_R24 96 /* offsetof(struct pt_regs, regs[24])	 # */
++#define PT_R25 100 /* offsetof(struct pt_regs, regs[25])	 # */
++#define PT_R26 104 /* offsetof(struct pt_regs, regs[26])	 # */
++#define PT_R27 108 /* offsetof(struct pt_regs, regs[27])	 # */
++#define PT_R28 112 /* offsetof(struct pt_regs, regs[28])	 # */
++#define PT_R29 116 /* offsetof(struct pt_regs, regs[29])	 # */
++#define PT_R30 120 /* offsetof(struct pt_regs, regs[30])	 # */
++#define PT_R31 124 /* offsetof(struct pt_regs, regs[31])	 # */
++#define PT_SIZE 136 /* sizeof(struct pt_regs)	 # */
++
++
++#endif
+diff --git a/arch/loongarch/include/asm/bitops.h b/arch/loongarch/include/asm/bitops.h
+new file mode 100644
+index 0000000000..c35c28f33c
+--- /dev/null
++++ b/arch/loongarch/include/asm/bitops.h
+@@ -0,0 +1,447 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (c) 1994 - 1997, 1999, 2000  Ralf Baechle (ralf@gnu.org)
++ * Copyright (c) 2000  Silicon Graphics, Inc.
++ */
++#ifndef _ASM_BITOPS_H
++#define _ASM_BITOPS_H
++
++#include <linux/types.h>
++#include <asm/byteorder.h>		/* sigh ... */
++
++#ifdef __KERNEL__
++
++
++#include <asm-generic/bitops/fls.h>
++#include <asm-generic/bitops/__fls.h>
++#include <asm-generic/bitops/fls64.h>
++#include <asm-generic/bitops/__ffs.h>
++
++/*
++ * clear_bit() doesn't provide any barrier for the compiler.
++ */
++#define smp_mb__before_clear_bit()	barrier()
++#define smp_mb__after_clear_bit()	barrier()
++
++/*
++ * Only disable interrupt for kernel mode stuff to keep usermode stuff
++ * that dares to use kernel include files alive.
++ */
++#define __bi_flags unsigned long flags
++#define __bi_cli() __cli()
++#define __bi_save_flags(x) __save_flags(x)
++#define __bi_save_and_cli(x) __save_and_cli(x)
++#define __bi_restore_flags(x) __restore_flags(x)
++#else
++#define __bi_flags
++#define __bi_cli()
++#define __bi_save_flags(x)
++#define __bi_save_and_cli(x)
++#define __bi_restore_flags(x)
++#endif /* __KERNEL__ */
++
++#ifdef CONFIG_CPU_HAS_LLSC
++
++#include <asm/la32rregs.h>
++
++/*
++ * These functions for LA32R ISA > 1 are interrupt and SMP proof and
++ * interrupt friendly
++ */
++
++/*
++ * __set_bit - Set a bit in memory
++ * @nr: the bit to set
++ * @addr: the address to start counting from
++ *
++ * Unlike set_bit(), this function is non-atomic and may be reordered.
++ * If it's called on the same region of memory simultaneously, the effect
++ * may be that only one operation succeeds.
++ */
++static __inline__ void __set_bit(int nr, volatile void * addr)
++{
++	unsigned long * m = ((unsigned long *) addr) + (nr >> 5);
++
++	*m |= 1UL << (nr & 31);
++}
++#define PLATFORM__SET_BIT
++
++/*
++ * __change_bit - Toggle a bit in memory
++ * @nr: the bit to set
++ * @addr: the address to start counting from
++ *
++ * Unlike change_bit(), this function is non-atomic and may be reordered.
++ * If it's called on the same region of memory simultaneously, the effect
++ * may be that only one operation succeeds.
++ */
++static __inline__ void __change_bit(int nr, volatile void * addr)
++{
++	unsigned long * m = ((unsigned long *) addr) + (nr >> 5);
++
++	*m ^= 1UL << (nr & 31);
++}
++
++
++/*
++ * __test_and_set_bit - Set a bit and return its old value
++ * @nr: Bit to set
++ * @addr: Address to count from
++ *
++ * This operation is non-atomic and can be reordered.
++ * If two examples of this operation race, one can appear to succeed
++ * but actually fail.  You must protect multiple accesses with a lock.
++ */
++static __inline__ int __test_and_set_bit(int nr, volatile void * addr)
++{
++	int mask, retval;
++	volatile int *a = addr;
++
++	a += nr >> 5;
++	mask = 1 << (nr & 0x1f);
++	retval = (mask & *a) != 0;
++	*a |= mask;
++
++	return retval;
++}
++
++
++/*
++ * __test_and_clear_bit - Clear a bit and return its old value
++ * @nr: Bit to set
++ * @addr: Address to count from
++ *
++ * This operation is non-atomic and can be reordered.
++ * If two examples of this operation race, one can appear to succeed
++ * but actually fail.  You must protect multiple accesses with a lock.
++ */
++static __inline__ int __test_and_clear_bit(int nr, volatile void * addr)
++{
++	int	mask, retval;
++	volatile int	*a = addr;
++
++	a += nr >> 5;
++	mask = 1 << (nr & 0x1f);
++	retval = (mask & *a) != 0;
++	*a &= ~mask;
++
++	return retval;
++}
++
++
++/*
++ * __test_and_change_bit - Change a bit and return its old value
++ * @nr: Bit to set
++ * @addr: Address to count from
++ *
++ * This operation is non-atomic and can be reordered.
++ * If two examples of this operation race, one can appear to succeed
++ * but actually fail.  You must protect multiple accesses with a lock.
++ */
++static __inline__ int __test_and_change_bit(int nr, volatile void * addr)
++{
++	int	mask, retval;
++	volatile int	*a = addr;
++
++	a += nr >> 5;
++	mask = 1 << (nr & 0x1f);
++	retval = (mask & *a) != 0;
++	*a ^= mask;
++
++	return retval;
++}
++
++#else /* LA32R I */
++
++/*
++ * __set_bit - Set a bit in memory
++ * @nr: the bit to set
++ * @addr: the address to start counting from
++ *
++ * Unlike set_bit(), this function is non-atomic and may be reordered.
++ * If it's called on the same region of memory simultaneously, the effect
++ * may be that only one operation succeeds.
++ */
++static __inline__ void __set_bit(int nr, volatile void * addr)
++{
++	int	mask;
++	volatile int	*a = addr;
++
++	a += nr >> 5;
++	mask = 1 << (nr & 0x1f);
++	*a |= mask;
++}
++
++/*
++ * __change_bit - Toggle a bit in memory
++ * @nr: the bit to set
++ * @addr: the address to start counting from
++ *
++ * Unlike change_bit(), this function is non-atomic and may be reordered.
++ * If it's called on the same region of memory simultaneously, the effect
++ * may be that only one operation succeeds.
++ */
++static __inline__ void __change_bit(int nr, volatile void * addr)
++{
++	unsigned long * m = ((unsigned long *) addr) + (nr >> 5);
++
++	*m ^= 1UL << (nr & 31);
++}
++
++/*
++ * __test_and_set_bit - Set a bit and return its old value
++ * @nr: Bit to set
++ * @addr: Address to count from
++ *
++ * This operation is non-atomic and can be reordered.
++ * If two examples of this operation race, one can appear to succeed
++ * but actually fail.  You must protect multiple accesses with a lock.
++ */
++static __inline__ int __test_and_set_bit(int nr, volatile void * addr)
++{
++	int	mask, retval;
++	volatile int	*a = addr;
++
++	a += nr >> 5;
++	mask = 1 << (nr & 0x1f);
++	retval = (mask & *a) != 0;
++	*a |= mask;
++
++	return retval;
++}
++
++/*
++ * __test_and_clear_bit - Clear a bit and return its old value
++ * @nr: Bit to set
++ * @addr: Address to count from
++ *
++ * This operation is non-atomic and can be reordered.
++ * If two examples of this operation race, one can appear to succeed
++ * but actually fail.  You must protect multiple accesses with a lock.
++ */
++static __inline__ int __test_and_clear_bit(int nr, volatile void * addr)
++{
++	int	mask, retval;
++	volatile int	*a = addr;
++
++	a += nr >> 5;
++	mask = 1 << (nr & 0x1f);
++	retval = (mask & *a) != 0;
++	*a &= ~mask;
++
++	return retval;
++}
++
++/*
++ * __test_and_change_bit - Change a bit and return its old value
++ * @nr: Bit to set
++ * @addr: Address to count from
++ *
++ * This operation is non-atomic and can be reordered.
++ * If two examples of this operation race, one can appear to succeed
++ * but actually fail.  You must protect multiple accesses with a lock.
++ */
++static __inline__ int __test_and_change_bit(int nr, volatile void * addr)
++{
++	int	mask, retval;
++	volatile int	*a = addr;
++
++	a += nr >> 5;
++	mask = 1 << (nr & 0x1f);
++	retval = (mask & *a) != 0;
++	*a ^= mask;
++
++	return retval;
++}
++
++#undef __bi_flags
++#undef __bi_cli
++#undef __bi_save_flags
++#undef __bi_restore_flags
++
++#endif /* LA32R I */
++
++/*
++ * test_bit - Determine whether a bit is set
++ * @nr: bit number to test
++ * @addr: Address to start counting from
++ */
++static __inline__ int test_bit(int nr, const volatile void *addr)
++{
++	return ((1UL << (nr & 31)) & (((const unsigned int *) addr)[nr >> 5])) != 0;
++}
++
++#ifdef __KERNEL__
++
++/*
++ * hweightN - returns the hamming weight of a N-bit word
++ * @x: the word to weigh
++ *
++ * The Hamming Weight of a number is the total number of bits set in it.
++ */
++
++#define hweight32(x) generic_hweight32(x)
++#define hweight16(x) generic_hweight16(x)
++#define hweight8(x) generic_hweight8(x)
++
++#endif /* __KERNEL__ */
++
++#ifdef __LA32REB__
++/*
++ * find_next_zero_bit - find the first zero bit in a memory region
++ * @addr: The address to base the search on
++ * @offset: The bitnumber to start searching at
++ * @size: The maximum size to search
++ */
++static __inline__ int find_next_zero_bit(void *addr, int size, int offset)
++{
++	unsigned long *p = ((unsigned long *) addr) + (offset >> 5);
++	unsigned long result = offset & ~31UL;
++	unsigned long tmp;
++
++	if (offset >= size)
++		return size;
++	size -= result;
++	offset &= 31UL;
++	if (offset) {
++		tmp = *(p++);
++		tmp |= ~0UL >> (32-offset);
++		if (size < 32)
++			goto found_first;
++		if (~tmp)
++			goto found_middle;
++		size -= 32;
++		result += 32;
++	}
++	while (size & ~31UL) {
++		if (~(tmp = *(p++)))
++			goto found_middle;
++		result += 32;
++		size -= 32;
++	}
++	if (!size)
++		return result;
++	tmp = *p;
++
++found_first:
++	tmp |= ~0UL << size;
++found_middle:
++	return result + ffz(tmp);
++}
++
++/* Linus sez that gcc can optimize the following correctly, we'll see if this
++ * holds on the Sparc as it does for the ALPHA.
++ */
++
++
++#define find_first_zero_bit(addr, size) \
++	find_next_zero_bit((addr), (size), 0)
++
++#endif /* (__LA32REB__) */
++
++/* Now for the ext2 filesystem bit operations and helper routines. */
++
++#ifdef __LA32REB__
++static __inline__ int ext2_set_bit(int nr, void * addr)
++{
++	int		mask, retval, flags;
++	unsigned char	*ADDR = (unsigned char *) addr;
++
++	ADDR += nr >> 3;
++	mask = 1 << (nr & 0x07);
++	save_and_cli(flags);
++	retval = (mask & *ADDR) != 0;
++	*ADDR |= mask;
++	restore_flags(flags);
++	return retval;
++}
++
++static __inline__ int ext2_clear_bit(int nr, void * addr)
++{
++	int		mask, retval, flags;
++	unsigned char	*ADDR = (unsigned char *) addr;
++
++	ADDR += nr >> 3;
++	mask = 1 << (nr & 0x07);
++	save_and_cli(flags);
++	retval = (mask & *ADDR) != 0;
++	*ADDR &= ~mask;
++	restore_flags(flags);
++	return retval;
++}
++
++static __inline__ int ext2_test_bit(int nr, const void * addr)
++{
++	int			mask;
++	const unsigned char	*ADDR = (const unsigned char *) addr;
++
++	ADDR += nr >> 3;
++	mask = 1 << (nr & 0x07);
++	return ((mask & *ADDR) != 0);
++}
++
++#define ext2_find_first_zero_bit(addr, size) \
++	ext2_find_next_zero_bit((addr), (size), 0)
++
++static __inline__ unsigned long ext2_find_next_zero_bit(void *addr, unsigned long size, unsigned long offset)
++{
++	unsigned long *p = ((unsigned long *) addr) + (offset >> 5);
++	unsigned long result = offset & ~31UL;
++	unsigned long tmp;
++
++	if (offset >= size)
++		return size;
++	size -= result;
++	offset &= 31UL;
++	if(offset) {
++		/* We hold the little endian value in tmp, but then the
++		 * shift is illegal. So we could keep a big endian value
++		 * in tmp, like this:
++		 *
++		 * tmp = __swab32(*(p++));
++		 * tmp |= ~0UL >> (32-offset);
++		 *
++		 * but this would decrease preformance, so we change the
++		 * shift:
++		 */
++		tmp = *(p++);
++		tmp |= __swab32(~0UL >> (32-offset));
++		if(size < 32)
++			goto found_first;
++		if(~tmp)
++			goto found_middle;
++		size -= 32;
++		result += 32;
++	}
++	while(size & ~31UL) {
++		if(~(tmp = *(p++)))
++			goto found_middle;
++		result += 32;
++		size -= 32;
++	}
++	if(!size)
++		return result;
++	tmp = *p;
++
++found_first:
++	/* tmp is little endian, so we would have to swab the shift,
++	 * see above. But then we have to swab tmp below for ffz, so
++	 * we might as well do this here.
++	 */
++	return result + ffz(__swab32(tmp) | (~0UL << size));
++found_middle:
++	return result + ffz(__swab32(tmp));
++}
++#else /* !(__LA32REB__) */
++
++/* Native ext2 byte ordering, just collapse using defines. */
++#define ext2_set_bit(nr, addr) test_and_set_bit((nr), (addr))
++#define ext2_clear_bit(nr, addr) test_and_clear_bit((nr), (addr))
++#define ext2_test_bit(nr, addr) test_bit((nr), (addr))
++#define ext2_find_first_zero_bit(addr, size) find_first_zero_bit((addr), (size))
++#define ext2_find_next_zero_bit(addr, size, offset) \
++		find_next_zero_bit((addr), (size), (offset))
++
++#endif /* !(__LA32REB__) */
++
++#endif /* _ASM_BITOPS_H */
+diff --git a/arch/loongarch/include/asm/byteorder.h b/arch/loongarch/include/asm/byteorder.h
+new file mode 100644
+index 0000000000..1a2d3ded26
+--- /dev/null
++++ b/arch/loongarch/include/asm/byteorder.h
+@@ -0,0 +1,22 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 1996, 99, 2003 by Ralf Baechle
++ */
++#ifndef _ASM_BYTEORDER_H
++#define _ASM_BYTEORDER_H
++
++#include <asm/types.h>
++
++#ifdef __GNUC__
++
++
++#if !defined(__STRICT_ANSI__) || defined(__KERNEL__)
++#  define __BYTEORDER_HAS_U64__
++#  define __SWAB_64_THRU_32__
++#endif
++
++#endif /* __GNUC__ */
++
++#  include <linux/byteorder/little_endian.h>
++
++#endif /* _ASM_BYTEORDER_H */
+diff --git a/arch/loongarch/include/asm/cache.h b/arch/loongarch/include/asm/cache.h
+new file mode 100644
+index 0000000000..7f33cc03ad
+--- /dev/null
++++ b/arch/loongarch/include/asm/cache.h
+@@ -0,0 +1,34 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++/*
++ * Copyright (c) 2011 The Chromium OS Authors.
++ */
++
++#ifndef __LA32R_CACHE_H__
++#define __LA32R_CACHE_H__
++
++#include <configs/la32r_chiplab.h>
++
++#define L1_CACHE_SHIFT		CONFIG_LA32R_L1_CACHE_SHIFT
++#define L1_CACHE_BYTES		(1 << L1_CACHE_SHIFT)
++
++#define ARCH_DMA_MINALIGN	(L1_CACHE_BYTES)
++
++/*
++ * CONFIG_SYS_CACHELINE_SIZE is still used in various drivers primarily for
++ * DMA buffer alignment. Satisfy those drivers by providing it as a synonym
++ * of ARCH_DMA_MINALIGN for now.
++ */
++#define CONFIG_SYS_CACHELINE_SIZE ARCH_DMA_MINALIGN
++
++#ifndef __ASSEMBLY__
++/**
++ * la32r_cache_probe() - Probe the properties of the caches
++ *
++ * Call this to probe the properties such as line sizes of the caches
++ * present in the system, if any. This must be done before cache maintenance
++ * functions such as flush_cache may be called.
++ */
++void la32r_cache_probe(void);
++#endif
++
++#endif /* __LA32R_CACHE_H__ */
+diff --git a/arch/loongarch/include/asm/cachectl.h b/arch/loongarch/include/asm/cachectl.h
+new file mode 100644
+index 0000000000..805da6f6ec
+--- /dev/null
++++ b/arch/loongarch/include/asm/cachectl.h
+@@ -0,0 +1,23 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 1994, 1995, 1996 by Ralf Baechle
++ */
++#ifndef	_ASM_CACHECTL
++#define	_ASM_CACHECTL
++
++/*
++ * Options for cacheflush system call
++ */
++#define	ICACHE	(1<<0)		/* flush instruction cache        */
++#define	DCACHE	(1<<1)		/* writeback and flush data cache */
++#define	BCACHE	(ICACHE|DCACHE)	/* flush both caches              */
++
++/*
++ * Caching modes for the cachectl(2) call
++ *
++ * cachectl(2) is currently not supported and returns ENOSYS.
++ */
++#define CACHEABLE	0	/* make pages cacheable */
++#define UNCACHEABLE	1	/* make pages uncacheable */
++
++#endif	/* _ASM_CACHECTL */
+diff --git a/arch/loongarch/include/asm/cacheops.h b/arch/loongarch/include/asm/cacheops.h
+new file mode 100644
+index 0000000000..94b1bd7586
+--- /dev/null
++++ b/arch/loongarch/include/asm/cacheops.h
+@@ -0,0 +1,45 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Cache operations for the cache instruction.
++ *
++ * (C) Copyright 1996, 97, 99, 2002, 03 Ralf Baechle
++ * (C) Copyright 1999 Silicon Graphics, Inc.
++ */
++#ifndef	_LOONGARCH_ASM_CACHEOPS_H
++#define	_LOONGARCH_ASM_CACHEOPS_H
++
++#ifndef __ASSEMBLY__
++
++static inline void la32r_cache(int op, const volatile void *addr)
++{
++	__asm__ __volatile__("cacop	%0, %1" : : "i"(op), "R" (*(unsigned char *)(addr)));
++}
++
++#define LA32R_WHICH_ICACHE                    0x0
++#define LA32R_FETCH_AND_LOCK                  0x7
++
++#define ICACHE_LOAD_LOCK (LA32R_WHICH_ICACHE | (LA32R_FETCH_AND_LOCK << 2))
++
++/* Prefetch and lock instructions into cache */
++static inline void icache_lock(void *func, size_t len)
++{
++}
++#endif /* !__ASSEMBLY__ */
++
++#define Cache_I				0x00
++#define Cache_D				0x01
++#define Cache_V				0x02
++#define Cache_S				0x03
++
++#define INDEX_INVALIDATE		0x08
++#define INDEX_WRITEBACK_INV		0x08
++#define HIT_INVALIDATE			0x10
++#define HIT_WRITEBACK_INV		0x10
++
++#define INDEX_INVALIDATE_I		(Cache_I | INDEX_INVALIDATE)
++#define INDEX_WRITEBACK_INV_D	(Cache_D | INDEX_WRITEBACK_INV)
++#define HIT_INVALIDATE_I		(Cache_I | HIT_INVALIDATE)
++#define HIT_INVALIDATE_D		(Cache_D | HIT_INVALIDATE)
++#define HIT_WRITEBACK_INV_D		(Cache_D | HIT_WRITEBACK_INV)
++
++#endif	/* _LOONGARCH_ASM_CACHEOPS_H */
+diff --git a/arch/loongarch/include/asm/config.h b/arch/loongarch/include/asm/config.h
+new file mode 100644
+index 0000000000..0720207b04
+--- /dev/null
++++ b/arch/loongarch/include/asm/config.h
+@@ -0,0 +1,9 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++/*
++ * Copyright 2009 Freescale Semiconductor, Inc.
++ */
++
++#ifndef _LOONGARCH_CONFIG_H_
++#define _LOONGARCH_CONFIG_H_
++
++#endif
+diff --git a/arch/loongarch/include/asm/dmw.h b/arch/loongarch/include/asm/dmw.h
+new file mode 100644
+index 0000000000..abdbd57c57
+--- /dev/null
++++ b/arch/loongarch/include/asm/dmw.h
+@@ -0,0 +1,23 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++
++/*
++ * Copyright (C) 2023 by loongson.
++ */
++#ifndef _LOONGARCH_ASM_DMW_H
++#define _LOONGARCH_ASM_DMW_H
++
++#define DIRECT_MAPPED_MEMORY_ADDR 0x0
++#define CACHED_MEMORY_ADDR		  0xa0000000
++#define UNCACHED_MEMORY_ADDR      0x80000000
++
++#define VA_TO_PHYS(x)			((x) & 0x1fffffff)
++
++#define CACHED_TO_PHYS(x)		VA_TO_PHYS(x)
++#define UNCACHED_TO_PHYS(x)		VA_TO_PHYS(x)
++#define PHYSADDR(x)				VA_TO_PHYS(x)
++#define PHYS_TO_CACHED(x)		((x) | CACHED_MEMORY_ADDR)
++#define PHYS_TO_UNCACHED(x)     ((x) | UNCACHED_MEMORY_ADDR)
++#define CACHED_TO_UNCACHED(x)   (PHYS_TO_UNCACHED(VA_TO_PHYS(x)))
++#define UNCACHED_TO_CACHED(x)   (PHYS_TO_CACHED(VA_TO_PHYS(x)))
++
++#endif /* _LOONGARCH_ASM_DMW_H */
+diff --git a/arch/loongarch/include/asm/global_data.h b/arch/loongarch/include/asm/global_data.h
+new file mode 100644
+index 0000000000..6a82491221
+--- /dev/null
++++ b/arch/loongarch/include/asm/global_data.h
+@@ -0,0 +1,20 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++/*
++ * (C) Copyright 2002-2010
++ * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
++ */
++
++#ifndef	__ASM_GBL_DATA_H
++#define __ASM_GBL_DATA_H
++
++#include <asm/la-registers.h>
++
++/* Architecture-specific global data */
++struct arch_global_data {
++};
++
++#include <asm-generic/global_data.h>
++
++#define DECLARE_GLOBAL_DATA_PTR     register volatile gd_t *gd asm ("$r21")
++
++#endif /* __ASM_GBL_DATA_H */
+diff --git a/arch/loongarch/include/asm/gpio.h b/arch/loongarch/include/asm/gpio.h
+new file mode 100644
+index 0000000000..306ab4c9f2
+--- /dev/null
++++ b/arch/loongarch/include/asm/gpio.h
+@@ -0,0 +1 @@
++#include <asm-generic/gpio.h>
+diff --git a/arch/loongarch/include/asm/io.h b/arch/loongarch/include/asm/io.h
+new file mode 100644
+index 0000000000..6b9d2d13ae
+--- /dev/null
++++ b/arch/loongarch/include/asm/io.h
+@@ -0,0 +1,564 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _ASM_IO_H
++#define _ASM_IO_H
++
++#include <linux/bug.h>
++#include <linux/compiler.h>
++#include <linux/types.h>
++
++#include <asm/dmw.h>
++#include <asm/byteorder.h>
++#include <asm/pgtable-bits.h>
++#include <asm/processor.h>
++#include <asm/string.h>
++
++#include <asm/mach-generic/ioremap.h>
++#include <asm/mach-generic/mangle-port.h>
++#include <asm/mach-generic/spaces.h>
++
++/*
++ * Raw operations are never swapped in software.  OTOH values that raw
++ * operations are working on may or may not have been swapped by the bus
++ * hardware.  An example use would be for flash memory that's used for
++ * execute in place.
++ */
++# define __raw_ioswabb(a, x)	(x)
++# define __raw_ioswabw(a, x)	(x)
++# define __raw_ioswabl(a, x)	(x)
++# define __raw_ioswabq(a, x)	(x)
++# define ____raw_ioswabq(a, x)	(x)
++
++/* ioswab[bwlq], __mem_ioswab[bwlq] are defined in mangle-port.h */
++
++#define IO_SPACE_LIMIT 0xffff
++
++
++static inline ulong la32r_io_port_base(void)
++{
++	return 0;
++}
++
++static inline void set_io_port_base(unsigned long base)
++{
++	BUG_ON(base);
++}
++
++
++/*
++ *     virt_to_phys    -       map virtual addresses to physical
++ *     @address: address to remap
++ *
++ *     The returned physical address is the physical (CPU) mapping for
++ *     the memory address given. It is only valid to use this function on
++ *     addresses directly mapped or allocated via kmalloc.
++ *
++ *     This function does not give bus mappings for DMA transfers. In
++ *     almost all conceivable cases a device driver should not be using
++ *     this function
++ */
++static inline unsigned long virt_to_phys(volatile const void *address)
++{
++	unsigned long addr = (unsigned long)address;
++
++	/* this corresponds to kernel implementation of __pa() */
++	return PHYSADDR(addr);
++}
++#define virt_to_phys virt_to_phys
++
++/*
++ *     phys_to_virt    -       map physical address to virtual
++ *     @address: address to remap
++ *
++ *     The returned virtual address is a current CPU mapping for
++ *     the memory address given. It is only valid to use this function on
++ *     addresses that have a kernel mapping
++ *
++ *     This function does not handle bus mappings for DMA transfers. In
++ *     almost all conceivable cases a device driver should not be using
++ *     this function
++ */
++static inline void *phys_to_virt(unsigned long address)
++{
++	return (void *)(address + PAGE_OFFSET - PHYS_OFFSET);
++}
++#define phys_to_virt phys_to_virt
++
++/*
++ * ISA I/O bus memory addresses are 1:1 with the physical address.
++ */
++static inline unsigned long isa_virt_to_bus(volatile void *address)
++{
++	return (unsigned long)address - PAGE_OFFSET;
++}
++
++static inline void *isa_bus_to_virt(unsigned long address)
++{
++	return (void *)(address + PAGE_OFFSET);
++}
++
++#define isa_page_to_bus page_to_phys
++
++/*
++ * However PCI ones are not necessarily 1:1 and therefore these interfaces
++ * are forbidden in portable PCI drivers.
++ *
++ * Allow them for x86 for legacy drivers, though.
++ */
++#define virt_to_bus virt_to_phys
++#define bus_to_virt phys_to_virt
++
++static inline void __iomem *__ioremap_mode(phys_addr_t offset, unsigned long size,
++	unsigned long flags)
++{
++	void __iomem *addr;
++	phys_addr_t phys_addr;
++
++	addr = plat_ioremap(offset, size, flags);
++	if (addr)
++		return addr;
++
++	phys_addr = fixup_bigphys_addr(offset, size);
++	return (void __iomem *)(unsigned long)PHYS_TO_UNCACHED(phys_addr);
++}
++
++/*
++ * ioremap     -   map bus memory into CPU space
++ * @offset:    bus address of the memory
++ * @size:      size of the resource to map
++ *
++ * ioremap performs a platform specific sequence of operations to
++ * make bus memory CPU accessible via the readb/readw/readl/writeb/
++ * writew/writel functions and the other mmio helpers. The returned
++ * address is not guaranteed to be usable directly as a virtual
++ * address.
++ */
++#define ioremap(offset, size)						\
++	__ioremap_mode((offset), (size), _CACHE_UNCACHED)
++
++/*
++ * ioremap_nocache     -   map bus memory into CPU space
++ * @offset:    bus address of the memory
++ * @size:      size of the resource to map
++ *
++ * ioremap_nocache performs a platform specific sequence of operations to
++ * make bus memory CPU accessible via the readb/readw/readl/writeb/
++ * writew/writel functions and the other mmio helpers. The returned
++ * address is not guaranteed to be usable directly as a virtual
++ * address.
++ *
++ * This version of ioremap ensures that the memory is marked uncachable
++ * on the CPU as well as honouring existing caching rules from things like
++ * the PCI bus. Note that there are other caches and buffers on many
++ * busses. In particular driver authors should read up on PCI writes
++ *
++ * It's useful if some control registers are in such an area and
++ * write combining or read caching is not desirable:
++ */
++#define ioremap_nocache(offset, size)					\
++	__ioremap_mode((offset), (size), _CACHE_UNCACHED)
++#define ioremap_uc ioremap_nocache
++
++/*
++ * ioremap_cachable -	map bus memory into CPU space
++ * @offset:	    bus address of the memory
++ * @size:	    size of the resource to map
++ *
++ * ioremap_nocache performs a platform specific sequence of operations to
++ * make bus memory CPU accessible via the readb/readw/readl/writeb/
++ * writew/writel functions and the other mmio helpers. The returned
++ * address is not guaranteed to be usable directly as a virtual
++ * address.
++ *
++ * This version of ioremap ensures that the memory is marked cachable by
++ * the CPU.  Also enables full write-combining.	 Useful for some
++ * memory-like regions on I/O busses.
++ */
++#define ioremap_cachable(offset, size)					\
++	__ioremap_mode((offset), (size), _page_cachable_default)
++
++/*
++ * These two are LA32R specific ioremap variant.	 ioremap_cacheable_cow
++ * requests a cachable mapping, ioremap_uncached_accelerated requests a
++ * mapping using the uncached accelerated mode which isn't supported on
++ * all processors.
++ */
++#define ioremap_cacheable_cow(offset, size)				\
++	__ioremap_mode((offset), (size), _CACHE_CACHABLE_COW)
++#define ioremap_uncached_accelerated(offset, size)			\
++	__ioremap_mode((offset), (size), _CACHE_UNCACHED_ACCELERATED)
++
++static inline void iounmap(const volatile void __iomem *addr)
++{
++	plat_iounmap(addr);
++}
++
++#ifdef CONFIG_CPU_CAVIUM_OCTEON
++#define war_octeon_io_reorder_wmb()		wmb()
++#else
++#define war_octeon_io_reorder_wmb()		do { } while (0)
++#endif
++
++#define __BUILD_MEMORY_SINGLE(pfx, bwlq, type, irq)			\
++									\
++static inline void pfx##write##bwlq(type val,				\
++				    volatile void __iomem *mem)		\
++{									\
++	volatile type *__mem;						\
++	type __val;							\
++									\
++	war_octeon_io_reorder_wmb();					\
++									\
++	__mem = (void *)__swizzle_addr_##bwlq((unsigned long)(mem));	\
++									\
++	__val = pfx##ioswab##bwlq(__mem, val);				\
++									\
++	if (sizeof(type) != sizeof(u64) || sizeof(u64) == sizeof(long)) \
++		*__mem = __val;						\
++	else								\
++		BUG();							\
++}									\
++									\
++static inline type pfx##read##bwlq(const volatile void __iomem *mem)	\
++{									\
++	volatile type *__mem;						\
++	type __val;							\
++									\
++	__mem = (void *)__swizzle_addr_##bwlq((unsigned long)(mem));	\
++									\
++	if (sizeof(type) != sizeof(u64) || sizeof(u64) == sizeof(long)) \
++		__val = *__mem;						\
++	else {							\
++		__val = 0;						\
++		BUG();							\
++	}								\
++									\
++	return pfx##ioswab##bwlq(__mem, __val);				\
++}
++
++#define __BUILD_IOPORT_SINGLE(pfx, bwlq, type, p)			\
++									\
++static inline void pfx##out##bwlq##p(type val, unsigned long port)	\
++{									\
++	volatile type *__addr;						\
++	type __val;							\
++									\
++	war_octeon_io_reorder_wmb();					\
++									\
++	__addr = (void *)__swizzle_addr_##bwlq(la32r_io_port_base() + port); \
++									\
++	__val = pfx##ioswab##bwlq(__addr, val);				\
++									\
++	/* Really, we want this to be atomic */				\
++	BUILD_BUG_ON(sizeof(type) > sizeof(unsigned long));		\
++									\
++	*__addr = __val;						\
++}									\
++									\
++static inline type pfx##in##bwlq##p(unsigned long port)			\
++{									\
++	volatile type *__addr;						\
++	type __val;							\
++									\
++	__addr = (void *)__swizzle_addr_##bwlq(la32r_io_port_base() + port); \
++									\
++	BUILD_BUG_ON(sizeof(type) > sizeof(unsigned long));		\
++									\
++	__val = *__addr;						\
++									\
++	return pfx##ioswab##bwlq(__addr, __val);			\
++}
++
++#define __BUILD_MEMORY_PFX(bus, bwlq, type)				\
++									\
++__BUILD_MEMORY_SINGLE(bus, bwlq, type, 1)
++
++#define BUILDIO_MEM(bwlq, type)						\
++									\
++__BUILD_MEMORY_PFX(__raw_, bwlq, type)					\
++__BUILD_MEMORY_PFX(, bwlq, type)					\
++__BUILD_MEMORY_PFX(__mem_, bwlq, type)					\
++
++BUILDIO_MEM(b, u8)
++BUILDIO_MEM(w, u16)
++BUILDIO_MEM(l, u32)
++BUILDIO_MEM(q, u64)
++#define __raw_readb __raw_readb
++#define __raw_readw __raw_readw
++#define __raw_readl __raw_readl
++#define __raw_readq __raw_readq
++#define __raw_writeb __raw_writeb
++#define __raw_writew __raw_writew
++#define __raw_writel __raw_writel
++#define __raw_writeq __raw_writeq
++#define readb readb
++#define readw readw
++#define readl readl
++#define readq readq
++#define writeb writeb
++#define writew writew
++#define writel writel
++#define writeq writeq
++
++#define __BUILD_IOPORT_PFX(bus, bwlq, type)				\
++	__BUILD_IOPORT_SINGLE(bus, bwlq, type, )			\
++	__BUILD_IOPORT_SINGLE(bus, bwlq, type, _p)
++
++#define BUILDIO_IOPORT(bwlq, type)					\
++	__BUILD_IOPORT_PFX(, bwlq, type)				\
++	__BUILD_IOPORT_PFX(__mem_, bwlq, type)
++
++BUILDIO_IOPORT(b, u8)
++BUILDIO_IOPORT(w, u16)
++BUILDIO_IOPORT(l, u32)
++#ifdef CONFIG_64BIT
++BUILDIO_IOPORT(q, u64)
++#endif
++
++#define __BUILDIO(bwlq, type)						\
++									\
++__BUILD_MEMORY_SINGLE(____raw_, bwlq, type, 0)
++
++__BUILDIO(q, u64)
++
++#define readb_relaxed			readb
++#define readw_relaxed			readw
++#define readl_relaxed			readl
++#define readq_relaxed			readq
++
++#define writeb_relaxed			writeb
++#define writew_relaxed			writew
++#define writel_relaxed			writel
++#define writeq_relaxed			writeq
++
++#define readb_be(addr)							\
++	__raw_readb((__force unsigned *)(addr))
++#define readw_be(addr)							\
++	be16_to_cpu(__raw_readw((__force unsigned *)(addr)))
++#define readl_be(addr)							\
++	be32_to_cpu(__raw_readl((__force unsigned *)(addr)))
++#define readq_be(addr)							\
++	be64_to_cpu(__raw_readq((__force unsigned *)(addr)))
++
++#define writeb_be(val, addr)						\
++	__raw_writeb((val), (__force unsigned *)(addr))
++#define writew_be(val, addr)						\
++	__raw_writew(cpu_to_be16((val)), (__force unsigned *)(addr))
++#define writel_be(val, addr)						\
++	__raw_writel(cpu_to_be32((val)), (__force unsigned *)(addr))
++#define writeq_be(val, addr)						\
++	__raw_writeq(cpu_to_be64((val)), (__force unsigned *)(addr))
++
++/*
++ * Some code tests for these symbols
++ */
++#define readq				readq
++#define writeq				writeq
++
++#define __BUILD_MEMORY_STRING(bwlq, type)				\
++									\
++static inline void writes##bwlq(volatile void __iomem *mem,		\
++				const void *addr, unsigned int count)	\
++{									\
++	const volatile type *__addr = addr;				\
++									\
++	while (count--) {						\
++		__mem_write##bwlq(*__addr, mem);			\
++		__addr++;						\
++	}								\
++}									\
++									\
++static inline void reads##bwlq(const volatile void __iomem *mem, void *addr,	\
++			       unsigned int count)			\
++{									\
++	volatile type *__addr = addr;					\
++									\
++	while (count--) {						\
++		*__addr = __mem_read##bwlq(mem);			\
++		__addr++;						\
++	}								\
++}
++
++#define __BUILD_IOPORT_STRING(bwlq, type)				\
++									\
++static inline void outs##bwlq(unsigned long port, const void *addr,	\
++			      unsigned int count)			\
++{									\
++	const volatile type *__addr = addr;				\
++									\
++	while (count--) {						\
++		__mem_out##bwlq(*__addr, port);				\
++		__addr++;						\
++	}								\
++}									\
++									\
++static inline void ins##bwlq(unsigned long port, void *addr,		\
++			     unsigned int count)			\
++{									\
++	volatile type *__addr = addr;					\
++									\
++	while (count--) {						\
++		*__addr = __mem_in##bwlq(port);				\
++		__addr++;						\
++	}								\
++}
++
++#define BUILDSTRING(bwlq, type)						\
++									\
++__BUILD_MEMORY_STRING(bwlq, type)					\
++__BUILD_IOPORT_STRING(bwlq, type)
++
++BUILDSTRING(b, u8)
++BUILDSTRING(w, u16)
++BUILDSTRING(l, u32)
++#define readsb readsb
++#define readsw readsw
++#define readsl readsl
++#define writesb writesb
++#define writesw writesw
++#define writesl writesl
++#define outsb outsb
++#define outsw outsw
++#define outsl outsl
++#define insb insb
++#define insw insw
++#define insl insl
++#ifdef CONFIG_64BIT
++BUILDSTRING(q, u64)
++#define readsq readsq
++#define writesq writesq
++#define insq insq
++#define outsq outsq
++#endif
++
++
++// #ifdef CONFIG_CPU_CAVIUM_OCTEON
++// #define mmiowb() wmb()
++// #else
++/* Depends on LA32R II instruction set */
++#define mmiowb() asm volatile ("\tibar 0\n":::"memory");
++// #endif
++
++static inline void memset_io(volatile void __iomem *addr, unsigned char val, int count)
++{
++	memset((void __force *)addr, val, count);
++}
++static inline void memcpy_fromio(void *dst, const volatile void __iomem *src, int count)
++{
++	memcpy(dst, (void __force *)src, count);
++}
++static inline void memcpy_toio(volatile void __iomem *dst, const void *src, int count)
++{
++	memcpy((void __force *)dst, src, count);
++}
++
++/*
++ * Read a 32-bit register that requires a 64-bit read cycle on the bus.
++ * Avoid interrupt mucking, just adjust the address for 4-byte access.
++ * Assume the addresses are 8-byte aligned.
++ */
++#ifdef __LA32REB__
++#define __CSR_32_ADJUST 4
++#else
++#define __CSR_32_ADJUST 0
++#endif
++
++#define csr_out32(v, a) (*(volatile u32 *)((unsigned long)(a) + __CSR_32_ADJUST) = (v))
++#define csr_in32(a)    (*(volatile u32 *)((unsigned long)(a) + __CSR_32_ADJUST))
++
++/*
++ * U-Boot specific
++ */
++#define sync()		mmiowb()
++
++#define MAP_NOCACHE	1
++
++static inline void *
++map_physmem(phys_addr_t paddr, unsigned long len, unsigned long flags)
++{
++	if (flags == MAP_NOCACHE)
++		return ioremap(paddr, len);
++
++	return (void *)PHYS_TO_CACHED(paddr);
++}
++#define map_physmem map_physmem
++
++#define __BUILD_CLRBITS(bwlq, sfx, end, type)				\
++									\
++static inline void clrbits_##sfx(volatile void __iomem *mem, type clr)	\
++{									\
++	type __val = __raw_read##bwlq(mem);				\
++	__val = end##_to_cpu(__val);					\
++	__val &= ~clr;							\
++	__val = cpu_to_##end(__val);					\
++	__raw_write##bwlq(__val, mem);					\
++}
++
++#define __BUILD_SETBITS(bwlq, sfx, end, type)				\
++									\
++static inline void setbits_##sfx(volatile void __iomem *mem, type set)	\
++{									\
++	type __val = __raw_read##bwlq(mem);				\
++	__val = end##_to_cpu(__val);					\
++	__val |= set;							\
++	__val = cpu_to_##end(__val);					\
++	__raw_write##bwlq(__val, mem);					\
++}
++
++#define __BUILD_CLRSETBITS(bwlq, sfx, end, type)			\
++									\
++static inline void clrsetbits_##sfx(volatile void __iomem *mem,		\
++					type clr, type set)		\
++{									\
++	type __val = __raw_read##bwlq(mem);				\
++	__val = end##_to_cpu(__val);					\
++	__val &= ~clr;							\
++	__val |= set;							\
++	__val = cpu_to_##end(__val);					\
++	__raw_write##bwlq(__val, mem);					\
++}
++
++#define BUILD_CLRSETBITS(bwlq, sfx, end, type)				\
++									\
++__BUILD_CLRBITS(bwlq, sfx, end, type)					\
++__BUILD_SETBITS(bwlq, sfx, end, type)					\
++__BUILD_CLRSETBITS(bwlq, sfx, end, type)
++
++#define __to_cpu(v)		(v)
++#define cpu_to__(v)		(v)
++
++#define out_arch(type, endian, a, v)	__raw_write##type(cpu_to_##endian(v),a)
++#define in_arch(type, endian, a)	endian##_to_cpu(__raw_read##type(a))
++
++#define out_le64(a, v)	out_arch(q, le64, a, v)
++#define out_le32(a, v)	out_arch(l, le32, a, v)
++#define out_le16(a, v)	out_arch(w, le16, a, v)
++
++#define in_le64(a)	in_arch(q, le64, a)
++#define in_le32(a)	in_arch(l, le32, a)
++#define in_le16(a)	in_arch(w, le16, a)
++
++#define out_be64(a, v)	out_arch(q, be64, a, v)
++#define out_be32(a, v)	out_arch(l, be32, a, v)
++#define out_be16(a, v)	out_arch(w, be16, a, v)
++
++#define in_be64(a)	in_arch(q, be64, a)
++#define in_be32(a)	in_arch(l, be32, a)
++#define in_be16(a)	in_arch(w, be16, a)
++
++#define out_8(a, v)	__raw_writeb(v, a)
++#define in_8(a)		__raw_readb(a)
++
++BUILD_CLRSETBITS(b, 8, _, u8)
++BUILD_CLRSETBITS(w, le16, le16, u16)
++BUILD_CLRSETBITS(w, be16, be16, u16)
++BUILD_CLRSETBITS(w, 16, _, u16)
++BUILD_CLRSETBITS(l, le32, le32, u32)
++BUILD_CLRSETBITS(l, be32, be32, u32)
++BUILD_CLRSETBITS(l, 32, _, u32)
++BUILD_CLRSETBITS(q, le64, le64, u64)
++BUILD_CLRSETBITS(q, be64, be64, u64)
++BUILD_CLRSETBITS(q, 64, _, u64)
++
++#include <asm-generic/io.h>
++
++#endif /* _ASM_IO_H */
+diff --git a/arch/loongarch/include/asm/la-registers.h b/arch/loongarch/include/asm/la-registers.h
+new file mode 100644
+index 0000000000..a010969522
+--- /dev/null
++++ b/arch/loongarch/include/asm/la-registers.h
+@@ -0,0 +1,46 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ */
++#ifndef _LOONGARCH_REGISTERS_H
++#define _LOONGARCH_REGISTERS_H
++
++
++/*
++ * Symbolic register names for 32 bit ABI
++ */
++#define zero	$r0	/* wired zero */
++#define ra	$r1	/* return address */
++#define tp	$r2
++#define sp	$r3	/* stack pointer */
++#define v0	$r4	/* return value - caller saved */
++#define v1	$r5
++#define a0	$r4	/* argument registers */
++#define a1	$r5
++#define a2	$r6
++#define a3	$r7
++#define a4	$r8
++#define a5	$r9
++#define a6	$r10
++#define a7	$r11
++#define t0	$r12	/* caller saved */
++#define t1	$r13
++#define t2	$r14
++#define t3	$r15
++#define t4	$r16
++#define t5	$r17
++#define t6	$r18
++#define t7	$r19
++#define t8	$r20
++#define x0	$r21
++#define fp	$r22	/* frame pointer */
++#define s0	$r23	/* callee saved */
++#define s1	$r24
++#define s2	$r25
++#define s3	$r26
++#define s4	$r27
++#define s5	$r28
++#define s6	$r29
++#define s7	$r30
++#define s8	$r31
++
++#endif /* _LOONGARCH_REGISTERS_H */
+diff --git a/arch/loongarch/include/asm/la32r-csr.h b/arch/loongarch/include/asm/la32r-csr.h
+new file mode 100644
+index 0000000000..91700262d4
+--- /dev/null
++++ b/arch/loongarch/include/asm/la32r-csr.h
+@@ -0,0 +1,71 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 1994, 1995, 1996, 1997, 2000, 2001 by Ralf Baechle
++ * Copyright (C) 2000 Silicon Graphics, Inc.
++ * Copyright (C) 2000, 07 Loongson Technologies, Inc.
++ */
++#ifndef _LOONGARCH_LA32R_CSRS_H
++#define _LOONGARCH_LA32R_CSRS_H
++
++/*
++ * The following macros are especially useful for __asm__
++ * inline assembler.
++ */
++
++#define csr_crmd 0x0
++#define csr_prmd 0x1
++#define csr_euen 0x2
++#define csr_ectl 0x4
++#define csr_estat 0x5
++#define csr_era 0x6
++#define csr_badv 0x7
++#define csr_eentry 0xc
++#define csr_tlbidx 0x10
++#define csr_tlbehi 0x11
++#define csr_tlbelo0 0x12
++#define csr_tlbelo1 0x13
++#define csr_asid 0x18
++#define csr_pgdl 0x19
++#define csr_pgdh 0x1a
++#define csr_pgd 0x1b
++#define csr_cpuid 0x20
++#define csr_save0 0x30
++#define csr_save1 0x31
++#define csr_save2 0x32
++#define csr_save3 0x33
++#define csr_tid 0x40
++#define csr_tcfg 0x41
++#define csr_tval 0x42
++#define csr_ticlr 0x44
++#define csr_llbctl 0x60
++#define csr_tlbrentry 0x88
++#define csr_dmw0 0x180
++#define csr_dmw1 0x181
++
++#define ESTAT_SWI0 0x0001
++#define ESTAT_SWI1 0x0002
++#define ESTAT_HWI0 0x0004
++#define ESTAT_HWI1 0x0008
++#define ESTAT_HWI2 0x0010
++#define ESTAT_HWI3 0x0020
++#define ESTAT_HWI4 0x0040
++#define ESTAT_HWI5 0x0080
++#define ESTAT_HWI6 0x0100
++#define ESTAT_HWI7 0x0200
++#define ESTAT_TI 0x0800
++#define ESTAT_IPI 0x1000
++
++#define ESTAT_ECODE 0x003f0000
++#define ESTAT_ESUBCODE 0x7fc00000
++
++#define CRMD_PLV 0x0003
++#define CRMD_IE 0x0004
++#define CRMD_DA 0x0008
++#define CRMD_PG 0x0010
++#define CRMD_DATF 0x0020
++#define CRMD_DATM 0x0080
++
++#define PRMD_PPLV 0x0003
++#define PRMD_PIE 0x0004
++
++#endif /* _LOONGARCH_LA32R_CSRS_H */
+diff --git a/arch/loongarch/include/asm/la32r-macros.h b/arch/loongarch/include/asm/la32r-macros.h
+new file mode 100644
+index 0000000000..d6de057556
+--- /dev/null
++++ b/arch/loongarch/include/asm/la32r-macros.h
+@@ -0,0 +1,125 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ *
++ * Some useful macros for LA32R assembler code
++ *
++ * Some of the routines below contain useless nops that will be optimized
++ * away by gas in -O mode. These nops are however required to fill delay
++ * slots in noreorder mode.
++ */
++#ifndef __LOONGARCH_32R_MACROS_H
++#define __LOONGARCH_32R_MACROS_H
++
++
++#ifndef CAT
++#ifdef __STDC__
++#define __CAT(str1, str2) str1##str2
++#else
++#define __CAT(str1, str2) str1/**/str2
++#endif
++#define CAT(str1, str2) __CAT(str1, str2)
++#endif
++
++/*
++ * PIC specific declarations
++ * Not used for the kernel but here seems to be the right place.
++ */
++#ifdef __PIC__
++#define CPRESTORE(register)				\
++		.cprestore register
++#define CPADD(register)					\
++		.cpadd	register
++#define CPLOAD(register)				\
++		.cpload register
++#else
++#define CPRESTORE(register)
++#define CPADD(register)
++#define CPLOAD(register)
++#endif
++
++#define ENTRY(symbol)					\
++		.globl	symbol;				\
++		.type	symbol, @function;		\
++symbol:
++
++/*
++ * LEAF - declare leaf routine
++ */
++#define LEAF(symbol)					\
++		.globl	symbol;				\
++        .align  2;              \
++		.type	symbol, @function;		\
++symbol:
++
++/*
++ * NESTED - declare nested routine entry point
++ */
++#define NESTED(symbol, framesize, rpc)			\
++		.globl	symbol;				\
++		.align	2;				\
++		.type	symbol, @function;		\
++		.section .text.symbol, "x";
++
++/*
++ * END - mark end of function
++ */
++#define END(function)					\
++		.size	function, .-function
++
++/*
++ * EXPORT - export definition of symbol
++ */
++#define EXPORT(symbol)					\
++		.globl	symbol;				\
++symbol:
++
++/*
++ * FEXPORT - export definition of a function symbol
++ */
++#define FEXPORT(symbol)					\
++		.globl	symbol;				\
++		.type	symbol, @function;		\
++symbol:
++
++/*
++ * ABS - export absolute symbol
++ */
++#define ABS(symbol,value)				\
++		.globl	symbol;				\
++symbol		=	value
++
++
++/*
++ * Print formatted string
++ */
++#ifdef CONFIG_PRINTK
++#define PRINT(string)					\
++		.set	push;				\
++		.set	reorder;			\
++		PTR_LA	a0, 8f;				 \
++		jal	printk;				\
++		.set	pop;				\
++		TEXT(string)
++#else
++#define PRINT(string)
++#endif
++
++#define TEXT(msg)					\
++		.pushsection .data;			\
++8:		.asciiz msg;				\
++		.popsection;
++
++/*
++ * Build text tables
++ */
++#define TTABLE(string)					\
++		.pushsection .text;			\
++		.word	1f;				\
++		.popsection				\
++		.pushsection .data;			\
++1:		.asciiz string;				\
++		.popsection
++
++
++
++#endif /* __LOONGARCH_32R_MACROS_H */
+diff --git a/arch/loongarch/include/asm/linkage.h b/arch/loongarch/include/asm/linkage.h
+new file mode 100644
+index 0000000000..e69de29bb2
+diff --git a/arch/loongarch/include/asm/mach-generic/ioremap.h b/arch/loongarch/include/asm/mach-generic/ioremap.h
+new file mode 100644
+index 0000000000..d6258f5bce
+--- /dev/null
++++ b/arch/loongarch/include/asm/mach-generic/ioremap.h
+@@ -0,0 +1,30 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __ASM_MACH_GENERIC_IOREMAP_H
++#define __ASM_MACH_GENERIC_IOREMAP_H
++
++#include <linux/types.h>
++
++/*
++ * Allow physical addresses to be fixed up to help peripherals located
++ * outside the low 32-bit range -- generic pass-through version.
++ */
++static inline phys_addr_t fixup_bigphys_addr(phys_addr_t phys_addr,
++						phys_addr_t size)
++{
++	return phys_addr;
++}
++
++static inline void __iomem *plat_ioremap(phys_addr_t offset, unsigned long size,
++						unsigned long flags)
++{
++	return NULL;
++}
++
++static inline int plat_iounmap(const volatile void __iomem *addr)
++{
++	return 0;
++}
++
++#define _page_cachable_default	_CACHE_CACHABLE_NONCOHERENT
++
++#endif /* __ASM_MACH_GENERIC_IOREMAP_H */
+diff --git a/arch/loongarch/include/asm/mach-generic/mangle-port.h b/arch/loongarch/include/asm/mach-generic/mangle-port.h
+new file mode 100644
+index 0000000000..3f95bbc880
+--- /dev/null
++++ b/arch/loongarch/include/asm/mach-generic/mangle-port.h
+@@ -0,0 +1,49 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 2003, 2004 Ralf Baechle
++ */
++#ifndef __ASM_MACH_GENERIC_MANGLE_PORT_H
++#define __ASM_MACH_GENERIC_MANGLE_PORT_H
++
++#define __swizzle_addr_b(port)	(port)
++#define __swizzle_addr_w(port)	(port)
++#define __swizzle_addr_l(port)	(port)
++#define __swizzle_addr_q(port)	(port)
++
++/*
++ * Sane hardware offers swapping of PCI/ISA I/O space accesses in hardware;
++ * less sane hardware forces software to fiddle with this...
++ *
++ * Regardless, if the host bus endianness mismatches that of PCI/ISA, then
++ * you can't have the numerical value of data and byte addresses within
++ * multibyte quantities both preserved at the same time.  Hence two
++ * variations of functions: non-prefixed ones that preserve the value
++ * and prefixed ones that preserve byte addresses.  The latters are
++ * typically used for moving raw data between a peripheral and memory (cf.
++ * string I/O functions), hence the "__mem_" prefix.
++ */
++#if defined(CONFIG_SWAP_IO_SPACE)
++
++# define ioswabb(a, x)		(x)
++# define __mem_ioswabb(a, x)	(x)
++# define ioswabw(a, x)		le16_to_cpu(x)
++# define __mem_ioswabw(a, x)	(x)
++# define ioswabl(a, x)		le32_to_cpu(x)
++# define __mem_ioswabl(a, x)	(x)
++# define ioswabq(a, x)		le64_to_cpu(x)
++# define __mem_ioswabq(a, x)	(x)
++
++#else
++
++# define ioswabb(a, x)		(x)
++# define __mem_ioswabb(a, x)	(x)
++# define ioswabw(a, x)		(x)
++# define __mem_ioswabw(a, x)	cpu_to_le16(x)
++# define ioswabl(a, x)		(x)
++# define __mem_ioswabl(a, x)	cpu_to_le32(x)
++# define ioswabq(a, x)		(x)
++# define __mem_ioswabq(a, x)	cpu_to_le32(x)
++
++#endif
++
++#endif /* __ASM_MACH_GENERIC_MANGLE_PORT_H */
+diff --git a/arch/loongarch/include/asm/mach-generic/spaces.h b/arch/loongarch/include/asm/mach-generic/spaces.h
+new file mode 100644
+index 0000000000..4fe60321cd
+--- /dev/null
++++ b/arch/loongarch/include/asm/mach-generic/spaces.h
+@@ -0,0 +1,61 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 1994 - 1999, 2000, 03, 04 Ralf Baechle
++ * Copyright (C) 2000, 2002  Maciej W. Rozycki
++ * Copyright (C) 1990, 1999, 2000 Silicon Graphics, Inc.
++ */
++#ifndef _ASM_MACH_GENERIC_SPACES_H
++#define _ASM_MACH_GENERIC_SPACES_H
++
++#include <linux/const.h>
++
++/*
++ * This gives the physical RAM offset.
++ */
++#ifndef PHYS_OFFSET
++#define PHYS_OFFSET		_AC(0, UL)
++#endif
++
++#ifdef CONFIG_KVM_GUEST
++#define CAC_BASE		_AC(0x40000000, UL)
++#else
++#define CAC_BASE		_AC(0xa0000000, UL)
++#endif
++#ifndef IO_BASE
++#define IO_BASE			_AC(0x80000000, UL)
++#endif
++#ifndef UNCAC_BASE
++#define UNCAC_BASE		_AC(0x80000000, UL)
++#endif
++
++#ifndef MAP_BASE
++#ifdef CONFIG_KVM_GUEST
++#define MAP_BASE		_AC(0x60000000, UL)
++#else
++#define MAP_BASE		_AC(0xc0000000, UL)
++#endif
++#endif
++
++/*
++ * Memory above this physical address will be considered highmem.
++ */
++#ifndef HIGHMEM_START
++#define HIGHMEM_START		_AC(0x20000000, UL)
++#endif
++
++/*
++ * This handles the memory map.
++ */
++#ifndef PAGE_OFFSET
++#define PAGE_OFFSET		(CAC_BASE + PHYS_OFFSET)
++#endif
++
++#ifndef FIXADDR_TOP
++#ifdef CONFIG_KVM_GUEST
++#define FIXADDR_TOP		((unsigned long)(long)(int)0x7ffe0000)
++#else
++#define FIXADDR_TOP		((unsigned long)(long)(int)0xfffe0000)
++#endif
++#endif
++
++#endif /* __ASM_MACH_GENERIC_SPACES_H */
+diff --git a/arch/loongarch/include/asm/pgtable-bits.h b/arch/loongarch/include/asm/pgtable-bits.h
+new file mode 100644
+index 0000000000..70ad9a0e56
+--- /dev/null
++++ b/arch/loongarch/include/asm/pgtable-bits.h
+@@ -0,0 +1,190 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ */
++#ifndef _ASM_PGTABLE_BITS_H
++#define _ASM_PGTABLE_BITS_H
++
++
++/*
++ * Note that we shift the lower 32bits of each EntryLo[01] entry
++ * 6 bits to the left. That way we can convert the PFN into the
++ * physical address by a single 'and' operation and gain 6 additional
++ * bits for storing information which isn't present in a normal
++ * LA32R page table.
++ *
++ * Similar to the Alpha port, we need to keep track of the ref
++ * and mod bits in software.  We have a software "yeah you can read
++ * from this page" bit, and a hardware one which actually lets the
++ * process read from the page.	On the same token we have a software
++ * writable bit and the real hardware one which actually lets the
++ * process write to the page, this keeps a mod bit via the hardware
++ * dirty bit.
++ *
++ * Certain revisions of the R4000 and R5000 have a bug where if a
++ * certain sequence occurs in the last 3 instructions of an executable
++ * page, and the following page is not mapped, the cpu can do
++ * unpredictable things.  The code (when it is written) to deal with
++ * this problem will be in the update_mmu_cache() code for the r4k.
++ */
++
++/*
++ * The following bits are implemented in software
++ */
++#define _PAGE_PRESENT_SHIFT	(0)
++#define _PAGE_PRESENT		(1 << _PAGE_PRESENT_SHIFT)
++#define _PAGE_READ_SHIFT	(_PAGE_PRESENT_SHIFT + 1)
++#define _PAGE_READ		(1 << _PAGE_READ_SHIFT)
++#define _PAGE_WRITE_SHIFT	(_PAGE_READ_SHIFT + 1)
++#define _PAGE_WRITE		(1 << _PAGE_WRITE_SHIFT)
++#define _PAGE_ACCESSED_SHIFT	(_PAGE_WRITE_SHIFT + 1)
++#define _PAGE_ACCESSED		(1 << _PAGE_ACCESSED_SHIFT)
++#define _PAGE_MODIFIED_SHIFT	(_PAGE_ACCESSED_SHIFT + 1)
++#define _PAGE_MODIFIED		(1 << _PAGE_MODIFIED_SHIFT)
++
++/*
++ * The following bits are implemented by the TLB hardware
++ */
++#define _PAGE_GLOBAL_SHIFT	(_PAGE_MODIFIED_SHIFT + 4)
++#define _PAGE_GLOBAL		(1 << _PAGE_GLOBAL_SHIFT)
++#define _PAGE_VALID_SHIFT	(_PAGE_GLOBAL_SHIFT + 1)
++#define _PAGE_VALID		(1 << _PAGE_VALID_SHIFT)
++#define _PAGE_DIRTY_SHIFT	(_PAGE_VALID_SHIFT + 1)
++#define _PAGE_DIRTY		(1 << _PAGE_DIRTY_SHIFT)
++#define _CACHE_UNCACHED_SHIFT	(_PAGE_DIRTY_SHIFT + 1)
++#define _CACHE_UNCACHED		(1 << _CACHE_UNCACHED_SHIFT)
++#define _CACHE_MASK		_CACHE_UNCACHED
++
++#define _PFN_SHIFT		PAGE_SHIFT
++
++#else
++/*
++ * Below are the "Normal" R4K cases
++ */
++
++/*
++ * The following bits are implemented in software
++ */
++#define _PAGE_PRESENT_SHIFT	0
++#define _PAGE_PRESENT		(1 << _PAGE_PRESENT_SHIFT)
++/* R2 or later cores check for RI/XI support to determine _PAGE_READ */
++#define _PAGE_READ_SHIFT	(_PAGE_PRESENT_SHIFT + 1)
++#define _PAGE_READ		(1 << _PAGE_READ_SHIFT)
++#define _PAGE_WRITE_SHIFT	(_PAGE_READ_SHIFT + 1)
++#define _PAGE_WRITE		(1 << _PAGE_WRITE_SHIFT)
++#define _PAGE_ACCESSED_SHIFT	(_PAGE_WRITE_SHIFT + 1)
++#define _PAGE_ACCESSED		(1 << _PAGE_ACCESSED_SHIFT)
++#define _PAGE_MODIFIED_SHIFT	(_PAGE_ACCESSED_SHIFT + 1)
++#define _PAGE_MODIFIED		(1 << _PAGE_MODIFIED_SHIFT)
++
++
++
++#if defined(_PAGE_NO_READ_SHIFT)
++#define _PAGE_GLOBAL_SHIFT	(_PAGE_NO_READ_SHIFT + 1)
++#elif defined(_PAGE_SPLITTING_SHIFT)
++#define _PAGE_GLOBAL_SHIFT	(_PAGE_SPLITTING_SHIFT + 1)
++#else
++#define _PAGE_GLOBAL_SHIFT	(_PAGE_MODIFIED_SHIFT + 1)
++#endif
++#define _PAGE_GLOBAL		(1 << _PAGE_GLOBAL_SHIFT)
++
++#define _PAGE_VALID_SHIFT	(_PAGE_GLOBAL_SHIFT + 1)
++#define _PAGE_VALID		(1 << _PAGE_VALID_SHIFT)
++#define _PAGE_DIRTY_SHIFT	(_PAGE_VALID_SHIFT + 1)
++#define _PAGE_DIRTY		(1 << _PAGE_DIRTY_SHIFT)
++#define _CACHE_SHIFT		(_PAGE_DIRTY_SHIFT + 1)
++#define _CACHE_MASK		(7 << _CACHE_SHIFT)
++
++#define _PFN_SHIFT		(PAGE_SHIFT - 12 + _CACHE_SHIFT + 3)
++
++
++#ifndef _PAGE_NO_EXEC
++#define _PAGE_NO_EXEC		0
++#endif
++#ifndef _PAGE_NO_READ
++#define _PAGE_NO_READ		0
++#endif
++
++#define _PAGE_SILENT_READ	_PAGE_VALID
++#define _PAGE_SILENT_WRITE	_PAGE_DIRTY
++
++#define _PFN_MASK		(~((1 << (_PFN_SHIFT)) - 1))
++
++/*
++ * The final layouts of the PTE bits are:
++ *
++ *   64-bit, R1 or earlier:     CCC D V G [S H] M A W R P
++ *   32-bit, R1 or earler:      CCC D V G M A W R P
++ *   64-bit, R2 or later:       CCC D V G RI/R XI [S H] M A W P
++ *   32-bit, R2 or later:       CCC D V G RI/R XI M A W P
++ */
++
++
++#ifndef __ASSEMBLY__
++static inline uint64_t pte_to_entrylo(unsigned long pte_val)
++{
++
++	return pte_val >> _PAGE_GLOBAL_SHIFT;
++}
++#endif
++
++/*
++ * Cache attributes
++ */
++#if defined(CONFIG_CPU_R3000) || defined(CONFIG_CPU_TX39XX)
++
++#define _CACHE_CACHABLE_NONCOHERENT 0
++#define _CACHE_UNCACHED_ACCELERATED _CACHE_UNCACHED
++
++#elif defined(CONFIG_CPU_SB1)
++
++/* No penalty for being coherent on the SB1, so just
++   use it for "noncoherent" spaces, too.  Shouldn't hurt. */
++
++#define _CACHE_CACHABLE_NONCOHERENT (5<<_CACHE_SHIFT)
++
++#elif defined(CONFIG_CPU_LOONGSON3)
++
++/* Using COHERENT flag for NONCOHERENT doesn't hurt. */
++
++#define _CACHE_CACHABLE_NONCOHERENT (3<<_CACHE_SHIFT)  /* LOONGSON       */
++#define _CACHE_CACHABLE_COHERENT    (3<<_CACHE_SHIFT)  /* LOONGSON-3     */
++
++#elif defined(CONFIG_MACH_INGENIC)
++
++/* Ingenic uses the WA bit to achieve write-combine memory writes */
++#define _CACHE_UNCACHED_ACCELERATED (1<<_CACHE_SHIFT)
++
++#endif
++
++#ifndef _CACHE_CACHABLE_NO_WA
++#define _CACHE_CACHABLE_NO_WA		(0<<_CACHE_SHIFT)
++#endif
++#ifndef _CACHE_CACHABLE_WA
++#define _CACHE_CACHABLE_WA		(1<<_CACHE_SHIFT)
++#endif
++#ifndef _CACHE_UNCACHED
++#define _CACHE_UNCACHED			(2<<_CACHE_SHIFT)
++#endif
++#ifndef _CACHE_CACHABLE_NONCOHERENT
++#define _CACHE_CACHABLE_NONCOHERENT	(3<<_CACHE_SHIFT)
++#endif
++#ifndef _CACHE_CACHABLE_CE
++#define _CACHE_CACHABLE_CE		(4<<_CACHE_SHIFT)
++#endif
++#ifndef _CACHE_CACHABLE_COW
++#define _CACHE_CACHABLE_COW		(5<<_CACHE_SHIFT)
++#endif
++#ifndef _CACHE_CACHABLE_CUW
++#define _CACHE_CACHABLE_CUW		(6<<_CACHE_SHIFT)
++#endif
++#ifndef _CACHE_UNCACHED_ACCELERATED
++#define _CACHE_UNCACHED_ACCELERATED	(7<<_CACHE_SHIFT)
++#endif
++
++#define __READABLE	(_PAGE_SILENT_READ | _PAGE_READ | _PAGE_ACCESSED)
++#define __WRITEABLE	(_PAGE_SILENT_WRITE | _PAGE_WRITE | _PAGE_MODIFIED)
++
++#define _PAGE_CHG_MASK	(_PAGE_ACCESSED | _PAGE_MODIFIED |	\
++			 _PFN_MASK | _CACHE_MASK)
++
++#endif /* _ASM_PGTABLE_BITS_H */
+diff --git a/arch/loongarch/include/asm/posix_types.h b/arch/loongarch/include/asm/posix_types.h
+new file mode 100644
+index 0000000000..3407e2f34a
+--- /dev/null
++++ b/arch/loongarch/include/asm/posix_types.h
+@@ -0,0 +1,125 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 1996, 1997, 1998, 2000 by Ralf Baechle
++ */
++#ifndef _ASM_POSIX_TYPES_H
++#define _ASM_POSIX_TYPES_H
++
++/*
++ * This file is generally used by user-level software, so you need to
++ * be a little careful about namespace pollution etc.  Also, we cannot
++ * assume GCC is being used.
++ */
++
++typedef unsigned int	__kernel_dev_t;
++typedef unsigned long	__kernel_ino_t;
++typedef unsigned int	__kernel_mode_t;
++typedef int		__kernel_nlink_t;
++typedef long		__kernel_off_t;
++typedef int		__kernel_pid_t;
++typedef int		__kernel_ipc_pid_t;
++typedef int		__kernel_uid_t;
++typedef int		__kernel_gid_t;
++#if _LA32R_SZLONG != 64
++typedef unsigned int	__kernel_size_t;
++typedef int		__kernel_ssize_t;
++typedef int		__kernel_ptrdiff_t;
++#else
++typedef unsigned long	__kernel_size_t;
++typedef long		__kernel_ssize_t;
++typedef long		__kernel_ptrdiff_t;
++#endif
++typedef long		__kernel_time_t;
++typedef long		__kernel_suseconds_t;
++typedef long		__kernel_clock_t;
++typedef long		__kernel_daddr_t;
++typedef char *		__kernel_caddr_t;
++
++typedef unsigned short	__kernel_uid16_t;
++typedef unsigned short	__kernel_gid16_t;
++typedef int		__kernel_uid32_t;
++typedef int		__kernel_gid32_t;
++typedef __kernel_uid_t	__kernel_old_uid_t;
++typedef __kernel_gid_t	__kernel_old_gid_t;
++
++#ifdef __GNUC__
++typedef long long      __kernel_loff_t;
++#endif
++
++typedef struct {
++	long    val[2];
++} __kernel_fsid_t;
++
++#if defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2)
++
++#undef __FD_SET
++static __inline__ void __FD_SET(unsigned long __fd, __kernel_fd_set *__fdsetp)
++{
++	unsigned long __tmp = __fd / __NFDBITS;
++	unsigned long __rem = __fd % __NFDBITS;
++	__fdsetp->fds_bits[__tmp] |= (1UL<<__rem);
++}
++
++#undef __FD_CLR
++static __inline__ void __FD_CLR(unsigned long __fd, __kernel_fd_set *__fdsetp)
++{
++	unsigned long __tmp = __fd / __NFDBITS;
++	unsigned long __rem = __fd % __NFDBITS;
++	__fdsetp->fds_bits[__tmp] &= ~(1UL<<__rem);
++}
++
++#undef __FD_ISSET
++static __inline__ int __FD_ISSET(unsigned long __fd, const __kernel_fd_set *__p)
++{
++	unsigned long __tmp = __fd / __NFDBITS;
++	unsigned long __rem = __fd % __NFDBITS;
++	return (__p->fds_bits[__tmp] & (1UL<<__rem)) != 0;
++}
++
++/*
++ * This will unroll the loop for the normal constant case (8 ints,
++ * for a 256-bit fd_set)
++ */
++#undef __FD_ZERO
++static __inline__ void __FD_ZERO(__kernel_fd_set *__p)
++{
++	unsigned long *__tmp = __p->fds_bits;
++	int __i;
++
++	if (__builtin_constant_p(__FDSET_LONGS)) {
++		switch (__FDSET_LONGS) {
++		case 16:
++			__tmp[ 0] = 0; __tmp[ 1] = 0;
++			__tmp[ 2] = 0; __tmp[ 3] = 0;
++			__tmp[ 4] = 0; __tmp[ 5] = 0;
++			__tmp[ 6] = 0; __tmp[ 7] = 0;
++			__tmp[ 8] = 0; __tmp[ 9] = 0;
++			__tmp[10] = 0; __tmp[11] = 0;
++			__tmp[12] = 0; __tmp[13] = 0;
++			__tmp[14] = 0; __tmp[15] = 0;
++			return;
++
++		case 8:
++			__tmp[ 0] = 0; __tmp[ 1] = 0;
++			__tmp[ 2] = 0; __tmp[ 3] = 0;
++			__tmp[ 4] = 0; __tmp[ 5] = 0;
++			__tmp[ 6] = 0; __tmp[ 7] = 0;
++			return;
++
++		case 4:
++			__tmp[ 0] = 0; __tmp[ 1] = 0;
++			__tmp[ 2] = 0; __tmp[ 3] = 0;
++			return;
++		}
++	}
++	__i = __FDSET_LONGS;
++	while (__i) {
++		__i--;
++		*__tmp = 0;
++		__tmp++;
++	}
++}
++
++#endif /* defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2) */
++
++#endif /* _ASM_POSIX_TYPES_H */
+diff --git a/arch/loongarch/include/asm/processor.h b/arch/loongarch/include/asm/processor.h
+new file mode 100644
+index 0000000000..1a15b9d55e
+--- /dev/null
++++ b/arch/loongarch/include/asm/processor.h
+@@ -0,0 +1,28 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 1999, 2000 Silicon Graphics, Inc.
++ */
++#ifndef _ASM_PROCESSOR_H
++#define _ASM_PROCESSOR_H
++
++#include <asm/la32r-csr.h>
++
++/*
++ * Return current * instruction pointer ("program counter").
++ */
++#define current_text_addr() ({ __label__ _l; _l: &&_l;})
++
++/*
++ * System setup and hardware flags..
++ */
++extern void (*cpu_wait)(void);
++
++extern unsigned int vced_count, vcei_count;
++
++#define NUM_FPU_REGS	32
++
++typedef __u64 fpureg_t;
++
++
++
++#endif /* _ASM_PROCESSOR_H */
+diff --git a/arch/loongarch/include/asm/ptrace.h b/arch/loongarch/include/asm/ptrace.h
+new file mode 100644
+index 0000000000..52235b28ec
+--- /dev/null
++++ b/arch/loongarch/include/asm/ptrace.h
+@@ -0,0 +1,35 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 1994, 95, 96, 97, 98, 99, 2000 by Ralf Baechle
++ * Copyright (C) 1999, 2000 Silicon Graphics, Inc.
++ */
++#ifndef _ASM_PTRACE_H
++#define _ASM_PTRACE_H
++
++#include <linux/compiler.h>
++#include <linux/types.h>
++
++/*
++ * This struct defines the way the registers are stored on the stack during a
++ * system call/exception. As usual the registers k0/k1 aren't being saved.
++ *
++ * If you add a register here, also add it to regoffset_table[] in
++ * arch/loongarch/kernel/ptrace.c.
++ */
++struct pt_regs {
++#ifdef CONFIG_32BIT
++	/* Pad bytes for argument save space on the stack. */
++	unsigned long pad0[8];
++#endif
++
++	/* Saved main processor registers. */
++	unsigned long regs[32];
++
++#ifdef CONFIG_CPU_CAVIUM_OCTEON
++	unsigned long long mpl[6];        /* MTM{0-5} */
++	unsigned long long mtp[6];        /* MTP{0-5} */
++#endif
++	unsigned long __last[0];
++} __aligned(8);
++
++#endif /* _ASM_PTRACE_H */
+diff --git a/arch/loongarch/include/asm/reboot.h b/arch/loongarch/include/asm/reboot.h
+new file mode 100644
+index 0000000000..6a86019a23
+--- /dev/null
++++ b/arch/loongarch/include/asm/reboot.h
+@@ -0,0 +1,10 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 1997, 1999, 2001, 06 by Ralf Baechle
++ */
++#ifndef _ASM_REBOOT_H
++#define _ASM_REBOOT_H
++
++extern void _machine_restart(void);
++
++#endif /* _ASM_REBOOT_H */
+diff --git a/arch/loongarch/include/asm/relocs.h b/arch/loongarch/include/asm/relocs.h
+new file mode 100644
+index 0000000000..3ae0c8eabb
+--- /dev/null
++++ b/arch/loongarch/include/asm/relocs.h
+@@ -0,0 +1,25 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++/*
++ *
++ * Copyright (c) 2017 Imagination Technologies Ltd.
++ */
++
++#ifndef __ASM_LA32R_RELOCS_H__
++#define __ASM_LA32R_RELOCS_H__
++
++#define R_LARCH_NONE				0
++#define R_LARCH_32				1
++#define R_LARCH_SOP_PUSH_PCREL			22       //
++#define R_LARCH_SOP_PUSH_ABSOLUTE		23       //
++#define R_LARCH_SOP_PUSH_GPREL			25       //
++#define R_LARCH_SOP_PUSH_PLT_PCREL		29
++#define R_LARCH_SOP_SUB				32       //
++#define R_LARCH_SOP_SL				33       //
++#define R_LARCH_SOP_SR				34       //
++#define R_LARCH_SOP_ADD				35       //
++#define R_LARCH_SOP_POP_32_S_10_12		40   //
++#define R_LARCH_SOP_POP_32_S_10_16_S2		42
++#define R_LARCH_SOP_POP_32_S_5_20		43       //
++#define R_LARCH_SOP_POP_32_S_0_10_10_16_S2	45
++
++#endif /* __ASM_LA32R_RELOCS_H__ */
+diff --git a/arch/loongarch/include/asm/sections.h b/arch/loongarch/include/asm/sections.h
+new file mode 100644
+index 0000000000..2da0556709
+--- /dev/null
++++ b/arch/loongarch/include/asm/sections.h
+@@ -0,0 +1,18 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++/*
++ * Copyright (c) 2012 The Chromium OS Authors.
++ */
++
++#ifndef __ASM_LA32R_SECTIONS_H
++#define __ASM_LA32R_SECTIONS_H
++
++#include <asm-generic/sections.h>
++
++/**
++ * __rel_start: Relocation data generated by the la32r-relocs tool
++ *
++ * See arch/loongarch/lib/reloc.c for details on the format & use of this data.
++ */
++extern uint8_t __rel_start[];
++
++#endif
+diff --git a/arch/loongarch/include/asm/spl.h b/arch/loongarch/include/asm/spl.h
+new file mode 100644
+index 0000000000..0a847edec8
+--- /dev/null
++++ b/arch/loongarch/include/asm/spl.h
+@@ -0,0 +1,33 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++/*
++ * (C) Copyright 2012
++ * Texas Instruments, <www.ti.com>
++ */
++#ifndef	_ASM_SPL_H_
++#define	_ASM_SPL_H_
++
++enum {
++	BOOT_DEVICE_RAM,
++	BOOT_DEVICE_MMC1,
++	BOOT_DEVICE_MMC2,
++	BOOT_DEVICE_MMC2_2,
++	BOOT_DEVICE_NAND,
++	BOOT_DEVICE_ONENAND,
++	BOOT_DEVICE_NOR,
++	BOOT_DEVICE_UART,
++	BOOT_DEVICE_SPI,
++	BOOT_DEVICE_USB,
++	BOOT_DEVICE_SATA,
++	BOOT_DEVICE_I2C,
++	BOOT_DEVICE_BOARD,
++	BOOT_DEVICE_DFU,
++	BOOT_DEVICE_XIP,
++	BOOT_DEVICE_BOOTROM,
++	BOOT_DEVICE_NONE
++};
++
++#ifndef CONFIG_DM
++extern gd_t gdata;
++#endif
++
++#endif
+diff --git a/arch/loongarch/include/asm/string.h b/arch/loongarch/include/asm/string.h
+new file mode 100644
+index 0000000000..461b5b7f33
+--- /dev/null
++++ b/arch/loongarch/include/asm/string.h
+@@ -0,0 +1,36 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (c) 1994, 95, 96, 97, 98, 2000, 01 Ralf Baechle
++ * Copyright (c) 2000 by Silicon Graphics, Inc.
++ * Copyright (c) 2001 Loongson Technologies, Inc.
++ */
++#ifndef _ASM_STRING_H
++#define _ASM_STRING_H
++
++/*
++ * We don't do inline string functions, since the
++ * optimised inline asm versions are not small.
++ */
++
++#undef __HAVE_ARCH_STRCPY
++extern char *strcpy(char *__dest, __const__ char *__src);
++
++#undef __HAVE_ARCH_STRNCPY
++extern char *strncpy(char *__dest, __const__ char *__src, __kernel_size_t __n);
++
++#undef __HAVE_ARCH_STRCMP
++extern int strcmp(__const__ char *__cs, __const__ char *__ct);
++
++#undef __HAVE_ARCH_STRNCMP
++extern int strncmp(__const__ char *__cs, __const__ char *__ct, __kernel_size_t __count);
++
++#undef __HAVE_ARCH_MEMSET
++extern void *memset(void *__s, int __c, __kernel_size_t __count);
++
++#undef __HAVE_ARCH_MEMCPY
++extern void *memcpy(void *__to, __const__ void *__from, __kernel_size_t __n);
++
++#undef __HAVE_ARCH_MEMMOVE
++extern void *memmove(void *__dest, __const__ void *__src, __kernel_size_t __n);
++
++#endif /* _ASM_STRING_H */
+diff --git a/arch/loongarch/include/asm/types.h b/arch/loongarch/include/asm/types.h
+new file mode 100644
+index 0000000000..78b9c4b18b
+--- /dev/null
++++ b/arch/loongarch/include/asm/types.h
+@@ -0,0 +1,55 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 1994, 1995, 1996, 1999 by Ralf Baechle
++ * Copyright (C) 1999 Silicon Graphics, Inc.
++ */
++#ifndef _ASM_TYPES_H
++#define _ASM_TYPES_H
++
++#include <asm-generic/int-ll64.h>
++
++#ifndef __ASSEMBLY__
++
++typedef unsigned short umode_t;
++
++#endif /* __ASSEMBLY__ */
++
++/*
++ * These aren't exported outside the kernel to avoid name space clashes
++ */
++#ifdef __KERNEL__
++
++#define BITS_PER_LONG 32
++
++#ifndef __ASSEMBLY__
++
++#if (defined(CONFIG_HIGHMEM) && defined(CONFIG_64BIT_PHYS_ADDR)) \
++    || defined(CONFIG_64BIT)
++typedef u64 dma_addr_t;
++
++typedef u64 phys_addr_t;
++typedef u64 phys_size_t;
++
++#else
++typedef u32 dma_addr_t;
++
++typedef u32 phys_addr_t;
++typedef u32 phys_size_t;
++
++#endif
++typedef u64 dma64_addr_t;
++
++/*
++ * Don't use phys_t.  You've been warned.
++ */
++#ifdef CONFIG_64BIT_PHYS_ADDR
++typedef unsigned long long phys_t;
++#else
++typedef unsigned long phys_t;
++#endif
++
++#endif /* __ASSEMBLY__ */
++
++#endif /* __KERNEL__ */
++
++#endif /* _ASM_TYPES_H */
+diff --git a/arch/loongarch/include/asm/u-boot.h b/arch/loongarch/include/asm/u-boot.h
+new file mode 100644
+index 0000000000..3966ee38f7
+--- /dev/null
++++ b/arch/loongarch/include/asm/u-boot.h
+@@ -0,0 +1,26 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++/*
++ * (C) Copyright 2003
++ * Wolfgang Denk, DENX Software Engineering, <wd@denx.de>
++ *
++ ********************************************************************
++ * NOTE: This header file defines an interface to U-Boot. Including
++ * this (unmodified) header file in another file is considered normal
++ * use of U-Boot, and does *not* fall under the heading of "derived
++ * work".
++ ********************************************************************
++ */
++
++#ifndef _U_BOOT_H_
++#define _U_BOOT_H_	1
++
++/* Use the generic board which requires a unified bd_info */
++#include <asm-generic/u-boot.h>
++
++/* For image.h:image_check_target_arch() */
++#define IH_ARCH_DEFAULT IH_ARCH_LA32R
++
++/* cpu/.../arch/cpu.c */
++int	arch_misc_init(void);
++
++#endif	/* _U_BOOT_H_ */
+diff --git a/arch/loongarch/include/asm/uart.h b/arch/loongarch/include/asm/uart.h
+new file mode 100644
+index 0000000000..936cec118d
+--- /dev/null
++++ b/arch/loongarch/include/asm/uart.h
+@@ -0,0 +1,80 @@
++#define COM0_BASE_ADDR  0x1fe00000
++#define COM1_BASE_ADDR  0x1fe001e0
++#define CONFREG_BASE    0x1fd00000
++
++#define NS16550_DATA    0
++#define NS16550_IER 1
++#define NS16550_IIR 2
++#define NS16550_FIFO    2
++#define NS16550_CFCR    3
++#define NS16550_MCR 4
++#define NS16550_LSR 5
++#define NS16550_MSR 6
++#define NS16550_SCR 7
++/* interrupt enable register */                                                     
++#define IER_ERXRDY  0x1 /* int on rx ready */                                       
++#define IER_ETXRDY  0x2 /* int on tx ready */                                       
++#define IER_ERLS    0x4 /* int on line status change */                             
++#define IER_EMSC    0x8 /* int on modem status change */                            
++                                                                                    
++/* interrupt identification register */                                             
++#define IIR_IMASK   0xf /* mask */                                                  
++#define IIR_RXTOUT  0xc /* receive timeout */                                       
++#define IIR_RLS     0x6 /* receive line status */                                   
++#define IIR_RXRDY   0x4 /* receive ready */                                         
++#define IIR_TXRDY   0x2 /* transmit ready */                                        
++#define IIR_NOPEND  0x1 /* nothing */                                               
++#define IIR_MLSC    0x0 /* modem status */                                          
++#define IIR_FIFO_MASK   0xc0    /* set if FIFOs are enabled */                      
++                                                                                    
++/* fifo control register */                                                         
++#define FIFO_ENABLE 0x01    /* enable fifo */                                       
++#define FIFO_RCV_RST    0x02    /* reset receive fifo */                            
++#define FIFO_XMT_RST    0x04    /* reset transmit fifo */                           
++#define FIFO_DMA_MODE   0x08    /* enable dma mode */                               
++#define FIFO_TRIGGER_1  0x00    /* trigger at 1 char */                             
++#define FIFO_TRIGGER_4  0x40    /* trigger at 4 chars */                            
++#define FIFO_TRIGGER_8  0x80    /* trigger at 8 chars */                            
++#define FIFO_TRIGGER_14 0xc0    /* trigger at 14 chars */                           
++                                                                                    
++/* character format control register */                                             
++#define CFCR_DLAB   0x80    /* divisor latch */                                     
++#define CFCR_SBREAK 0x40    /* send break */                                        
++#define CFCR_PZERO  0x30    /* zero parity */                                       
++#define CFCR_PONE   0x20    /* one parity */                                        
++#define CFCR_PEVEN  0x10    /* even parity */                                       
++#define CFCR_PODD   0x00    /* odd parity */                                        
++#define CFCR_PENAB  0x08    /* parity enable */                                     
++#define CFCR_STOPB  0x04    /* 2 stop bits */                                       
++#define CFCR_8BITS  0x03    /* 8 data bits */                                       
++#define CFCR_7BITS  0x02    /* 7 data bits */                                       
++#define CFCR_6BITS  0x01    /* 6 data bits */                         
++#define CFCR_5BITS  0x00    /* 5 data bits */                         
++                                                                      
++/* modem control register */                                          
++#define MCR_LOOPBACK    0x10    /* loopback */                        
++#define MCR_IENABLE 0x08    /* output 2 = int enable */               
++#define MCR_DRS     0x04    /* output 1 = xxx */                      
++#define MCR_RTS     0x02    /* enable RTS */                          
++#define MCR_DTR     0x01    /* enable DTR */                          
++                                                                      
++/* line status register */                                            
++#define LSR_RCV_FIFO    0x80    /* error in receive fifo */           
++#define LSR_TSRE    0x40    /* transmitter empty */                   
++#define LSR_TXRDY   0x20    /* transmitter ready */                   
++#define LSR_BI      0x10    /* break detected */                      
++#define LSR_FE      0x08    /* framing error */                       
++#define LSR_PE      0x04    /* parity error */                        
++#define LSR_OE      0x02    /* overrun error */                       
++#define LSR_RXRDY   0x01    /* receiver ready */                      
++#define LSR_RCV_MASK    0x1f                                          
++                                                                      
++/* modem status register */                                           
++#define MSR_DCD     0x80    /* DCD active */                          
++#define MSR_RI      0x40    /* RI  active */                          
++#define MSR_DSR     0x20    /* DSR active */                          
++#define MSR_CTS     0x10    /* CTS active */                          
++#define MSR_DDCD    0x08    /* DCD changed */                         
++#define MSR_TERI    0x04    /* RI  changed */                         
++#define MSR_DDSR    0x02    /* DSR changed */                         
++#define MSR_DCTS    0x01    /* CTS changed */                         
+diff --git a/arch/loongarch/include/asm/unaligned.h b/arch/loongarch/include/asm/unaligned.h
+new file mode 100644
+index 0000000000..33f8e06267
+--- /dev/null
++++ b/arch/loongarch/include/asm/unaligned.h
+@@ -0,0 +1,15 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ */
++#ifndef _ASM_LA32R_UNALIGNED_H
++#define _ASM_LA32R_UNALIGNED_H
++
++#include <linux/compiler.h>
++#define get_unaligned	__get_unaligned_le
++#define put_unaligned	__put_unaligned_le
++
++#include <linux/unaligned/le_byteshift.h>
++#include <linux/unaligned/be_byteshift.h>
++#include <linux/unaligned/generic.h>
++
++#endif /* _ASM_LA32R_UNALIGNED_H */
+diff --git a/arch/loongarch/lib/Makefile b/arch/loongarch/lib/Makefile
+new file mode 100644
+index 0000000000..285be482e5
+--- /dev/null
++++ b/arch/loongarch/lib/Makefile
+@@ -0,0 +1,5 @@
++obj-y	+= bootm.o
++obj-y	+= cache.o
++obj-y	+= interrupts.o
++obj-y	+= reloc.o
++obj-y	+= reset.o
+diff --git a/arch/loongarch/lib/asm-offsets.c b/arch/loongarch/lib/asm-offsets.c
+new file mode 100644
+index 0000000000..68323ab555
+--- /dev/null
++++ b/arch/loongarch/lib/asm-offsets.c
+@@ -0,0 +1,48 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * offset.c: Calculate pt_regs and task_struct offsets.
++ *
++ */
++
++#include <asm/ptrace.h>
++#include <linux/stddef.h>
++#include <linux/kbuild.h>
++
++void output_ptreg_defines(void)
++{
++	COMMENT("LA32R pt_regs offsets.");
++	OFFSET(PT_R0, pt_regs, regs[0]);
++	OFFSET(PT_R1, pt_regs, regs[1]);
++	OFFSET(PT_R2, pt_regs, regs[2]);
++	OFFSET(PT_R3, pt_regs, regs[3]);
++	OFFSET(PT_R4, pt_regs, regs[4]);
++	OFFSET(PT_R5, pt_regs, regs[5]);
++	OFFSET(PT_R6, pt_regs, regs[6]);
++	OFFSET(PT_R7, pt_regs, regs[7]);
++	OFFSET(PT_R8, pt_regs, regs[8]);
++	OFFSET(PT_R9, pt_regs, regs[9]);
++	OFFSET(PT_R10, pt_regs, regs[10]);
++	OFFSET(PT_R11, pt_regs, regs[11]);
++	OFFSET(PT_R12, pt_regs, regs[12]);
++	OFFSET(PT_R13, pt_regs, regs[13]);
++	OFFSET(PT_R14, pt_regs, regs[14]);
++	OFFSET(PT_R15, pt_regs, regs[15]);
++	OFFSET(PT_R16, pt_regs, regs[16]);
++	OFFSET(PT_R17, pt_regs, regs[17]);
++	OFFSET(PT_R18, pt_regs, regs[18]);
++	OFFSET(PT_R19, pt_regs, regs[19]);
++	OFFSET(PT_R20, pt_regs, regs[20]);
++	OFFSET(PT_R21, pt_regs, regs[21]);
++	OFFSET(PT_R22, pt_regs, regs[22]);
++	OFFSET(PT_R23, pt_regs, regs[23]);
++	OFFSET(PT_R24, pt_regs, regs[24]);
++	OFFSET(PT_R25, pt_regs, regs[25]);
++	OFFSET(PT_R26, pt_regs, regs[26]);
++	OFFSET(PT_R27, pt_regs, regs[27]);
++	OFFSET(PT_R28, pt_regs, regs[28]);
++	OFFSET(PT_R29, pt_regs, regs[29]);
++	OFFSET(PT_R30, pt_regs, regs[30]);
++	OFFSET(PT_R31, pt_regs, regs[31]);
++	DEFINE(PT_SIZE, sizeof(struct pt_regs));
++	BLANK();
++}
+diff --git a/arch/loongarch/lib/bootm.c b/arch/loongarch/lib/bootm.c
+new file mode 100644
+index 0000000000..c0c0370f93
+--- /dev/null
++++ b/arch/loongarch/lib/bootm.c
+@@ -0,0 +1,304 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * (C) Copyright 2003
++ * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
++ */
++
++#include <common.h>
++#include <bootm.h>
++#include <bootstage.h>
++#include <env.h>
++#include <image.h>
++#include <fdt_support.h>
++#include <lmb.h>
++#include <log.h>
++#include <asm/dmw.h>
++#include <asm/global_data.h>
++#include <asm/io.h>
++
++DECLARE_GLOBAL_DATA_PTR;
++
++#define	LINUX_MAX_ENVS		256
++#define	LINUX_MAX_ARGS		256
++
++static int linux_argc;
++static char **linux_argv;
++static char *linux_argp;
++
++static char **linux_env;
++static char *linux_env_p;
++static int linux_env_idx;
++
++
++static void linux_cmdline_init(void)
++{
++	linux_argc = 1;
++	linux_argv = (char **)UNCACHED_TO_CACHED(gd->bd->bi_boot_params);
++	linux_argv[0] = 0;
++	linux_argp = (char *)(linux_argv + LINUX_MAX_ARGS);
++}
++
++static void linux_cmdline_set(const char *value, size_t len)
++{
++	linux_argv[linux_argc] = linux_argp;
++	memcpy(linux_argp, value, len);
++	linux_argp[len] = 0;
++
++	linux_argp += len + 1;
++	linux_argc++;
++}
++
++static void linux_cmdline_dump(void)
++{
++	int i;
++
++	debug("## cmdline argv at 0x%p, argp at 0x%p\n",
++	      linux_argv, linux_argp);
++
++	for (i = 1; i < linux_argc; i++)
++		debug("   arg %03d: %s\n", i, linux_argv[i]);
++}
++
++static void linux_cmdline_legacy(struct bootm_headers *images)
++{
++	const char *bootargs, *next, *quote;
++
++	linux_cmdline_init();
++
++	bootargs = env_get("bootargs");
++	if (!bootargs)
++		return;
++
++	next = bootargs;
++
++	while (bootargs && *bootargs && linux_argc < LINUX_MAX_ARGS) {
++		quote = strchr(bootargs, '"');
++		next = strchr(bootargs, ' ');
++
++		while (next && quote && quote < next) {
++			/*
++			 * we found a left quote before the next blank
++			 * now we have to find the matching right quote
++			 */
++			next = strchr(quote + 1, '"');
++			if (next) {
++				quote = strchr(next + 1, '"');
++				next = strchr(next + 1, ' ');
++			}
++		}
++
++		if (!next)
++			next = bootargs + strlen(bootargs);
++
++		linux_cmdline_set(bootargs, next - bootargs);
++
++		if (*next)
++			next++;
++
++		bootargs = next;
++	}
++}
++
++static void linux_cmdline_append(struct bootm_headers *images)
++{
++	char buf[24];
++	ulong mem, rd_start, rd_size;
++
++	/* append mem */
++	mem = gd->ram_size >> 20;
++	sprintf(buf, "mem=%luM", mem);
++	linux_cmdline_set(buf, strlen(buf));
++
++	/* append rd_start and rd_size */
++	rd_start = images->initrd_start;
++	rd_size = images->initrd_end - images->initrd_start;
++
++	if (rd_size) {
++		sprintf(buf, "rd_start=0x%08lX", rd_start);
++		linux_cmdline_set(buf, strlen(buf));
++		sprintf(buf, "rd_size=0x%lX", rd_size);
++		linux_cmdline_set(buf, strlen(buf));
++	}
++}
++
++static void linux_env_init(void)
++{
++	linux_env = (char **)(((ulong) linux_argp + 15) & ~15);
++	linux_env[0] = 0;
++	linux_env_p = (char *)(linux_env + LINUX_MAX_ENVS);
++	linux_env_idx = 0;
++}
++
++static void linux_env_set(const char *env_name, const char *env_val)
++{
++	if (linux_env_idx < LINUX_MAX_ENVS - 1) {
++		linux_env[linux_env_idx] = linux_env_p;
++
++		strcpy(linux_env_p, env_name);
++		linux_env_p += strlen(env_name);
++
++		if (CONFIG_IS_ENABLED(MALTA)) {
++			linux_env_p++;
++			linux_env[++linux_env_idx] = linux_env_p;
++		} else {
++			*linux_env_p++ = '=';
++		}
++
++		strcpy(linux_env_p, env_val);
++		linux_env_p += strlen(env_val);
++
++		linux_env_p++;
++		linux_env[++linux_env_idx] = 0;
++	}
++}
++
++static void linux_env_legacy(struct bootm_headers *images)
++{
++	char env_buf[12];
++	const char *cp;
++	ulong rd_start, rd_size;
++
++	if (CONFIG_IS_ENABLED(MEMSIZE_IN_BYTES)) {
++		sprintf(env_buf, "%lu", (ulong)gd->ram_size);
++		debug("## Giving linux memsize in bytes, %lu\n",
++		      (ulong)gd->ram_size);
++	} else {
++		sprintf(env_buf, "%lu", (ulong)(gd->ram_size >> 20));
++		debug("## Giving linux memsize in MB, %lu\n",
++		      (ulong)(gd->ram_size >> 20));
++	}
++
++	rd_start = UNCACHED_TO_CACHED(images->initrd_start);
++	rd_size = images->initrd_end - images->initrd_start;
++
++	linux_env_init();
++
++	linux_env_set("memsize", env_buf);
++
++	sprintf(env_buf, "0x%08lX", rd_start);
++	linux_env_set("initrd_start", env_buf);
++
++	sprintf(env_buf, "0x%lX", rd_size);
++	linux_env_set("initrd_size", env_buf);
++
++	sprintf(env_buf, "0x%08X", (uint) (gd->bd->bi_flashstart));
++	linux_env_set("flash_start", env_buf);
++
++	sprintf(env_buf, "0x%X", (uint) (gd->bd->bi_flashsize));
++	linux_env_set("flash_size", env_buf);
++
++	cp = env_get("ethaddr");
++	if (cp)
++		linux_env_set("ethaddr", cp);
++
++	cp = env_get("eth1addr");
++	if (cp)
++		linux_env_set("eth1addr", cp);
++
++	if (CONFIG_IS_ENABLED(MALTA)) {
++		sprintf(env_buf, "%un8r", gd->baudrate);
++		linux_env_set("modetty0", env_buf);
++	}
++}
++
++static int boot_reloc_fdt(struct bootm_headers *images)
++{
++	/*
++	 * In case of legacy uImage's, relocation of FDT is already done
++	 * by do_bootm_states() and should not repeated in 'bootm prep'.
++	 */
++	if (images->state & BOOTM_STATE_FDT) {
++		debug("## FDT already relocated\n");
++		return 0;
++	}
++
++#if CONFIG_IS_ENABLED(LA32R_BOOT_FDT) && CONFIG_IS_ENABLED(OF_LIBFDT)
++	boot_fdt_add_mem_rsv_regions(&images->lmb, images->ft_addr);
++	return boot_relocate_fdt(&images->lmb, &images->ft_addr,
++		&images->ft_len);
++#else
++	return 0;
++#endif
++}
++
++#if CONFIG_IS_ENABLED(LA32R_BOOT_FDT) && CONFIG_IS_ENABLED(OF_LIBFDT)
++int arch_fixup_fdt(void *blob)
++{
++	u64 mem_start = virt_to_phys((void *)gd->bd->bi_memstart);
++	u64 mem_size = gd->ram_size;
++
++	return fdt_fixup_memory_banks(blob, &mem_start, &mem_size, 1);
++}
++#endif
++
++static int boot_setup_fdt(struct bootm_headers *images)
++{
++	images->initrd_start = virt_to_phys((void *)images->initrd_start);
++	images->initrd_end = virt_to_phys((void *)images->initrd_end);
++	return image_setup_libfdt(images, images->ft_addr, &images->lmb);
++}
++
++static void boot_prep_linux(struct bootm_headers *images)
++{
++	if (CONFIG_IS_ENABLED(LA32R_BOOT_FDT) && images->ft_len) {
++		boot_reloc_fdt(images);
++		boot_setup_fdt(images);
++	}
++}
++
++static void boot_jump_linux(struct bootm_headers *images)
++{
++	typedef void __noreturn (*kernel_entry_t)(int, ulong, ulong, ulong);
++	kernel_entry_t kernel = (kernel_entry_t) images->ep;
++	ulong linux_extra = 0;
++
++	debug("## Transferring control to Linux (at address %p) ...\n", kernel);
++
++	bootstage_mark(BOOTSTAGE_ID_RUN_OS);
++
++	if (CONFIG_IS_ENABLED(MALTA))
++		linux_extra = gd->ram_size;
++
++#if CONFIG_IS_ENABLED(BOOTSTAGE_FDT)
++	bootstage_fdt_add_report();
++#endif
++#if CONFIG_IS_ENABLED(BOOTSTAGE_REPORT)
++	bootstage_report();
++#endif
++
++	if (images->ft_len)
++		kernel(-2, (ulong)images->ft_addr, 0, 0);
++	else
++		kernel(linux_argc, (ulong)linux_argv, (ulong)linux_env,
++			linux_extra);
++}
++
++int do_bootm_linux(int flag, struct bootm_info *bmi)
++{
++	struct bootm_headers *images = bmi->images;
++
++	/* No need for those on MIPS */
++	if (flag & BOOTM_STATE_OS_BD_T)
++		return -1;
++
++	/*
++	 * Cmdline init has been moved to 'bootm prep' because it has to be
++	 * done after relocation of ramdisk to always pass correct values
++	 * for rd_start and rd_size to Linux kernel.
++	 */
++	if (flag & BOOTM_STATE_OS_CMDLINE)
++		return 0;
++
++	if (flag & BOOTM_STATE_OS_PREP) {
++		boot_prep_linux(images);
++		return 0;
++	}
++
++	if (flag & (BOOTM_STATE_OS_GO | BOOTM_STATE_OS_FAKE_GO)) {
++		boot_jump_linux(images);
++		return 0;
++	}
++
++	/* does not return */
++	return 1;
++}
+diff --git a/arch/loongarch/lib/cache.c b/arch/loongarch/lib/cache.c
+new file mode 100644
+index 0000000000..e48335b5aa
+--- /dev/null
++++ b/arch/loongarch/lib/cache.c
+@@ -0,0 +1,68 @@
++// SPDX-License-Identifier: GPL-2.0+
++
++#include <common.h>
++#include <asm/io.h>
++#include <asm/cacheops.h>
++#include <asm/global_data.h>
++
++DECLARE_GLOBAL_DATA_PTR;
++
++void la32r_cache_probe(void)
++{
++}
++
++static inline unsigned long icache_line_size(void)
++{
++	return CONFIG_SYS_ICACHE_LINE_SIZE;
++}
++
++static inline unsigned long dcache_line_size(void)
++{
++	return CONFIG_SYS_DCACHE_LINE_SIZE;
++}
++
++#define cache_loop(start, size, lsize, ops)                          \
++	do                                                               \
++	{                                                                \
++		const void *addr = (const void *)(start & ~(lsize - 1));     \
++		unsigned int count;                                          \
++		unsigned new_size;                                           \
++        new_size = (start & (lsize - 1)) ? size + (lsize - (start & (lsize - 1))) : size;       \
++                                                                     \
++		for (count = 0; lsize * count < new_size; count++) {         \
++				la32r_cache(ops, addr + lsize * count);     \
++		}                                                            \
++	} while (0)
++
++void flush_cache(ulong start_addr, ulong size)
++{
++
++	/* flush D-cache */
++	cache_loop(start_addr, size, dcache_line_size(), HIT_WRITEBACK_INV_D);
++    
++	sync();
++
++}
++
++void flush_dcache_range(ulong start_addr, ulong stop)
++{
++    flush_cache(start_addr, (stop - start_addr));
++}
++
++void invalidate_dcache_range(ulong start_addr, ulong stop)
++{
++    flush_cache(start_addr, (stop - start_addr));
++}
++
++void dcache_enable(void)
++{
++}
++
++void dcache_disable(void)
++{
++}
++
++int dcache_status(void)
++{
++	return 1;
++}
+diff --git a/arch/loongarch/lib/interrupts.c b/arch/loongarch/lib/interrupts.c
+new file mode 100644
+index 0000000000..bddfcaf1e8
+--- /dev/null
++++ b/arch/loongarch/lib/interrupts.c
+@@ -0,0 +1,20 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * (C) Copyright 2003
++ * Wolfgang Denk, DENX Software Engineering, <wd@denx.de>
++ */
++
++#include <common.h>
++#include <asm/types.h>
++
++void enable_interrupts(void) { }
++
++int disable_interrupts(void)
++{
++    return 0;
++}
++
++int interrupt_init(void)
++{
++    return 0;
++}
+diff --git a/arch/loongarch/lib/reloc.c b/arch/loongarch/lib/reloc.c
+new file mode 100644
+index 0000000000..43235ffa6e
+--- /dev/null
++++ b/arch/loongarch/lib/reloc.c
+@@ -0,0 +1,272 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * LA32R Relocation
++ *
++ * Copyright (c) 2017 Imagination Technologies Ltd.
++ *
++ * Relocation data, found in the .rel section, is generated by the la32r-relocs
++ * tool & contains a record of all locations in the U-Boot binary that need to
++ * be fixed up during relocation.
++ *
++ * The data is a sequence of unsigned integers, which are of somewhat arbitrary
++ * size. This is achieved by encoding integers as a sequence of bytes, each of
++ * which contains 7 bits of data with the most significant bit indicating
++ * whether any further bytes need to be read. The least significant bits of the
++ * integer are found in the first byte - ie. it somewhat resembles little
++ * endian.
++ *
++ * Each pair of two integers represents a relocation that must be applied. The
++ * first integer represents the type of relocation as a standard ELF relocation
++ * type (ie. R_LA32R_*). The second integer represents the offset at which to
++ * apply the relocation, relative to the previous relocation or for the first
++ * relocation the start of the relocated .text section.
++ *
++ * The end of the relocation data is indicated when type R_LA32R_NONE (0) is
++ * read, at which point no further integers should be read. That is, the
++ * terminating R_LA32R_NONE reloc includes no offset.
++ */
++
++#include <common.h>
++#include <cpu_func.h>
++#include <init.h>
++#include <asm/relocs.h>
++#include <asm/sections.h>
++
++/**
++ * read_uint() - Read an unsigned integer from the buffer
++ * @buf: pointer to a pointer to the reloc buffer
++ *
++ * Read one whole unsigned integer from the relocation data pointed to by @buf,
++ * advancing @buf past the bytes encoding the integer.
++ *
++ * Returns: the integer read from @buf
++ */
++static unsigned long read_uint(uint8_t **buf)
++{
++	unsigned long val = 0;
++	unsigned int shift = 0;
++	uint8_t new;
++
++	do {
++		new = *(*buf)++;
++		val |= (new & 0x7f) << shift;
++		shift += 7;
++	} while (new & 0x80);
++
++	return val;
++}
++static int rela_stack_push(long stack_value, long *rela_stack, size_t *rela_stack_top)
++{
++	if (*rela_stack_top >= 16) {
++		printf("rela_stack_top: %d\n",*rela_stack_top);
++		panic("rela stack push overflow");
++	}
++
++	rela_stack[(*rela_stack_top)++] = stack_value;
++
++	return 0;
++}
++
++static int rela_stack_pop(long *stack_value, long *rela_stack, size_t *rela_stack_top)
++{
++	if (*rela_stack_top == 0) {
++		printf("rela_stack_top: %d\n",*rela_stack_top);
++		panic("rela stack pop overflow");
++	}
++
++	*stack_value = rela_stack[--(*rela_stack_top)];
++
++	return 0;
++}
++/**
++ * apply_reloc() - Apply a single relocation
++ * @type: the type of reloc (R_LA32R_*)
++ * @addr: the address that the reloc should be applied to
++ * @off: the relocation offset, ie. number of bytes we're moving U-Boot by
++ * Apply a single relocation of type @type at @addr. This function is
++ * intentionally simple, and does the bare minimum needed to fixup the
++ * relocated U-Boot - in particular, it does not check for overflows.
++ * 
++ * @addend: the relocation addend
++ *
++ */
++static void apply_reloc(unsigned int type, void *addr, long off, long sym, long* rela_stack, size_t *rela_stack_top)
++{
++	long op1,op2;
++
++	switch (type) {
++	case R_LARCH_32:
++		*(uint32_t *)addr = sym + off;
++		break;
++	case R_LARCH_SOP_PUSH_PCREL:
++		rela_stack_push(sym - (uint32_t)addr,rela_stack,rela_stack_top);
++		break;
++	case R_LARCH_SOP_PUSH_ABSOLUTE:
++		rela_stack_push(sym,rela_stack,rela_stack_top);
++		break;
++	case R_LARCH_SOP_PUSH_GPREL:
++		rela_stack_push(0,rela_stack,rela_stack_top);
++		break;
++	case R_LARCH_SOP_PUSH_PLT_PCREL:
++		rela_stack_push(sym - (uint32_t)addr,rela_stack,rela_stack_top);
++		break;
++	case R_LARCH_SOP_SUB:
++		rela_stack_pop(&op2,rela_stack,rela_stack_top);
++		rela_stack_pop(&op1,rela_stack,rela_stack_top);
++		rela_stack_push(op1 - op2,rela_stack,rela_stack_top);
++		break;
++	case R_LARCH_SOP_SL:
++		rela_stack_pop(&op2,rela_stack,rela_stack_top);
++		rela_stack_pop(&op1,rela_stack,rela_stack_top);
++		rela_stack_push(op1 << op2,rela_stack,rela_stack_top);
++		break;
++	case R_LARCH_SOP_SR:
++		rela_stack_pop(&op2,rela_stack,rela_stack_top);
++		rela_stack_pop(&op1,rela_stack,rela_stack_top);
++		rela_stack_push(op1 >> op2,rela_stack,rela_stack_top);
++		break;
++	case R_LARCH_SOP_ADD:
++		rela_stack_pop(&op2,rela_stack,rela_stack_top);
++		rela_stack_pop(&op1,rela_stack,rela_stack_top);
++		rela_stack_push(op1 + op2,rela_stack,rela_stack_top);
++		break;
++	case R_LARCH_SOP_POP_32_S_10_12:
++		rela_stack_pop(&op1,rela_stack,rela_stack_top);
++		if ((op1 & ~0x7ff) &&
++			(op1 & ~0x7ff) != ~0x7ff) {
++			panic("1: op1 = 0x%lx overflow! @0x%p\n",op1,addr);
++		}
++		*(uint32_t *)addr = ((*(uint32_t *)addr) & (~0x3ffc00)) | ((op1 & 0xfff) << 10);
++		break;
++	case R_LARCH_SOP_POP_32_S_10_16_S2:
++		rela_stack_pop(&op1,rela_stack,rela_stack_top);
++
++		/* check 4-aligned */
++		if (op1 % 4) {
++			panic("2: op1 = 0x%lx unaligned! @0x%p\n",op1,addr);
++		}
++		op1 >>= 2;
++
++		if ((op1 & ~0x7fff) &&
++			(op1 & ~0x7fff) != ~0x7fff) {
++			panic("3: op1 = 0x%lx overflow! @0x%p\n",op1,addr);
++		}
++		(*(uint32_t *)addr) = ((*(uint32_t *)addr) & 0xfc0003ff) | ((op1 & 0xffff) << 10);
++		break;
++	case R_LARCH_SOP_POP_32_S_5_20:
++		rela_stack_pop(&op1,rela_stack,rela_stack_top);
++		if ((op1 & ~0x7ffff) &&
++			(op1 & ~0x7ffff) != ~0x7ffff) {
++			panic("4: op1 = 0x%lx overflow! @0x%p\n",op1,addr);
++		}
++		*(uint32_t *)addr = ((*(uint32_t *)addr) & (~0x1ffffe0)) | ((op1 & 0xfffff) << 5);
++		break;
++	case R_LARCH_SOP_POP_32_S_0_10_10_16_S2:
++		rela_stack_pop(&op1,rela_stack,rela_stack_top);
++
++		/* check 4-aligned */
++		if (op1 % 4) {
++			panic("5: op1 = 0x%lx unaligned! @0x%p\n",op1,addr);
++		}
++		op1 >>= 2;
++
++		if ((op1 & ~0x1ffffff) &&
++			(op1 & ~0x1ffffff) != ~0x1ffffff) {
++			panic("6: op1 = 0x%lx overflow! @0x%p\n",op1,addr);
++		}
++		*(uint32_t *)addr = ((*(uint32_t *)addr) & 0xfc000000)
++		| ((op1 & 0x3ff0000) >> 16) | ((op1 & 0xffff) << 10);
++		break;
++	default:
++		panic("Unhandled reloc type %u\n", type);
++	}
++}
++
++/**
++ * relocate_code() - Relocate U-Boot, generally from flash to DDR
++ * @start_addr_sp: new stack pointer
++ * @new_gd: pointer to relocated global data
++ * @relocaddr: the address to relocate to
++ *
++ * Relocate U-Boot from its current location (generally in flash) to a new one
++ * (generally in DDR). This function will copy the U-Boot binary & apply
++ * relocations as necessary, then jump to board_init_r in the new build of
++ * U-Boot. As such, this function does not return.
++ */
++register volatile ulong stack_pointer asm ("$r29");
++register volatile gd_t *new_gd_ptr asm ("$r30");
++register volatile ulong reladdr asm ("$r31");
++
++void relocate_code(ulong start_addr_sp, gd_t *new_gd, ulong relocaddr)
++{
++	unsigned long addr, length, bss_len;
++	uint8_t *buf, *bss_start;
++	unsigned int type;
++	long off, sym;
++	long rela_stack[16];
++	size_t rela_stack_top = 0;
++
++	stack_pointer = start_addr_sp;
++	new_gd_ptr = new_gd;
++	reladdr = relocaddr;
++
++	/*
++	 * Ensure that we're relocating by an offset which is a multiple of
++	 * 64KiB, ie. doesn't change the least significant 16 bits of any
++	 * addresses. This allows us to discard R_LA32R_LO16 relocs, saving
++	 * space in the U-Boot binary & complexity in handling them.
++	 */
++	off = relocaddr - (unsigned long)__text_start;
++	if (off & 0xfff) {
++		printf("off: 0x%08lx\n", off);
++		panic("Mis-aligned relocation\n");
++	}
++
++	/* Copy U-Boot to RAM */
++	length = __image_copy_end - __text_start;
++	memcpy((void *)relocaddr, __text_start, length);
++
++	/* Now apply relocations to the copy in RAM */
++	buf = __rel_start;
++	addr = relocaddr;
++	uint32_t *got = (uint32_t *)(read_uint(&buf) + off);
++	uint32_t got_size = read_uint(&buf);
++	debug("got located in %x, original %lx, size %d\n",(u32)got,(u32)got - off,got_size);
++	for(int i = 0 ; i < got_size ; i++) {
++		got[i] += off;
++	}
++	while (true) {
++		type = read_uint(&buf);
++		if (type == 0)
++			break;
++		addr += read_uint(&buf) << 2;
++		sym = read_uint(&buf);
++		apply_reloc(type, (void *)addr, off, sym, rela_stack, &rela_stack_top);
++	}
++
++	/* Ensure the icache is coherent */
++	flush_cache(relocaddr, length);
++
++	/* Clear the .bss section */
++	bss_start = (uint8_t *)((unsigned long)__bss_start + off);
++	bss_len = (unsigned long)&__bss_end - (unsigned long)__bss_start;
++	memset(bss_start, 0, bss_len);
++
++	new_gd->flags &= ~(GD_FLG_SERIAL_READY | GD_FLG_LOG_READY);
++	
++	/* Jump to the relocated U-Boot */
++	asm volatile(
++		"	add.w	$r3, %0, $r0\n"
++		"	add.w	$r4, %1, $r0\n"
++		"	add.w	$r5, %2, $r0\n"
++		"	add.w	$r1, $r0, $r0\n"
++		"	jr	%3"
++		: /* no outputs */
++		: "r"(stack_pointer),
++		  "r"(new_gd_ptr),
++		  "r"(reladdr),
++		  "r"((unsigned long)board_init_r + off));
++
++	/* Since we jumped to the new U-Boot above, we won't get here */
++	unreachable();
++}
+diff --git a/arch/loongarch/lib/reset.c b/arch/loongarch/lib/reset.c
+new file mode 100644
+index 0000000000..c4153c9e6e
+--- /dev/null
++++ b/arch/loongarch/lib/reset.c
+@@ -0,0 +1,14 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * Copyright (C) 2018, Bin Meng <bmeng.cn@gmail.com>
++ */
++
++#include <command.h>
++#include <cpu_func.h>
++
++int do_reset(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
++{
++	reset_cpu();
++
++	return 0;
++}
+diff --git a/dts/Makefile b/dts/Makefile
+index d6c2c9daf3..bb724c01ef 100644
+--- a/dts/Makefile
++++ b/dts/Makefile
+@@ -73,7 +73,7 @@ spl_dtbs: $(obj)/dt-$(SPL_NAME).dtb
+ clean-files := dt.dtb.S
+ 
+ # Let clean descend into dts directories
+-subdir- += ../arch/arc/dts ../arch/arm/dts ../arch/m68k/dts ../arch/microblaze/dts	\
++subdir- += ../arch/arc/dts ../arch/arm/dts ../arch/loongarch/dts ../arch/m68k/dts ../arch/microblaze/dts	\
+ 	   ../arch/mips/dts ../arch/nios2/dts ../arch/powerpc/dts ../arch/riscv/dts	\
+ 	   ../arch/sandbox/dts ../arch/sh/dts ../arch/x86/dts ../arch/xtensa/dts	\
+ 	   ./upstream/src/arm64 ./upstream/src/$(ARCH)
+diff --git a/include/image.h b/include/image.h
+index acffd17e0d..04633c1b0e 100644
+--- a/include/image.h
++++ b/include/image.h
+@@ -139,6 +139,7 @@ enum {
+ 	IH_ARCH_X86_64,			/* AMD x86_64, Intel and Via */
+ 	IH_ARCH_XTENSA,			/* Xtensa	*/
+ 	IH_ARCH_RISCV,			/* RISC-V */
++	IH_ARCH_LA32R,			/* LA32R */
+ 
+ 	IH_ARCH_COUNT,
+ };
+diff --git a/lib/Kconfig b/lib/Kconfig
+index 189e6eb31a..a9f5565d09 100644
+--- a/lib/Kconfig
++++ b/lib/Kconfig
+@@ -1100,8 +1100,8 @@ config LIB_ELF
+ 
+ config LMB
+ 	bool "Enable the logical memory blocks library (lmb)"
+-	default y if ARC || ARM || M68K || MICROBLAZE || MIPS || \
+-		     NIOS2 || PPC || RISCV || SANDBOX || SH || X86 || XTENSA
++	default y if ARC || ARM || LOONGARCH || M68K || MICROBLAZE || \
++			MIPS || NIOS2 || PPC || RISCV || SANDBOX || SH || X86 || XTENSA
+ 	help
+ 	  Support the library logical memory blocks.
+ 
+diff --git a/tools/.gitignore b/tools/.gitignore
+index 0108c56730..7a607eeb52 100644
+--- a/tools/.gitignore
++++ b/tools/.gitignore
+@@ -20,6 +20,7 @@
+ /img2srec
+ /kwboot
+ /lib/
++/la32r-relocs
+ /mips-relocs
+ /mkeficapsule
+ /mkenvimage
+diff --git a/tools/Makefile b/tools/Makefile
+index 6a4280e366..f44b264908 100644
+--- a/tools/Makefile
++++ b/tools/Makefile
+@@ -239,6 +239,7 @@ ifneq ($(TOOLS_ONLY),y)
+ hostprogs-y += spl_size_limit
+ endif
+ 
++hostprogs-$(CONFIG_LOONGARCH) += la32r-relocs
+ hostprogs-$(CONFIG_MIPS) += mips-relocs
+ 
+ hostprogs-$(CONFIG_ASN1_COMPILER)	+= asn1_compiler
+diff --git a/tools/la32r-relocs.c b/tools/la32r-relocs.c
+new file mode 100644
+index 0000000000..26de2be840
+--- /dev/null
++++ b/tools/la32r-relocs.c
+@@ -0,0 +1,515 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * MIPS Relocation Data Generator
++ *
++ * Copyright (c) 2017 Imagination Technologies Ltd.
++ */
++
++#include <assert.h>
++#include <elf.h>
++#include <errno.h>
++#include <fcntl.h>
++#include <limits.h>
++#include <stdbool.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <sys/mman.h>
++#include <sys/stat.h>
++#include <unistd.h>
++
++#include <asm/relocs.h>
++
++#define hdr_field(pfx, idx, field) ({                 \
++	uint64_t _val;                                    \
++	unsigned int _size;                               \
++                                                      \
++	if (is_64)                                        \
++	{                                                 \
++		_val = pfx##hdr64[idx].field;                 \
++		_size = sizeof(pfx##hdr64[0].field);          \
++	}                                                 \
++	else                                              \
++	{                                                 \
++		_val = pfx##hdr32[idx].field;                 \
++		_size = sizeof(pfx##hdr32[0].field);          \
++	}                                                 \
++                                                      \
++	switch (_size)                                    \
++	{                                                 \
++	case 1:                                           \
++		break;                                        \
++	case 2:                                           \
++		_val = is_be ? be16toh(_val) : le16toh(_val); \
++		break;                                        \
++	case 4:                                           \
++		_val = is_be ? be32toh(_val) : le32toh(_val); \
++		break;                                        \
++	case 8:                                           \
++		_val = is_be ? be64toh(_val) : le64toh(_val); \
++		break;                                        \
++	}                                                 \
++                                                      \
++	_val;                                             \
++})
++
++#define set_hdr_field(pfx, idx, field, val) ({      \
++	uint64_t _val;                                  \
++	unsigned int _size;                             \
++                                                    \
++	if (is_64)                                      \
++		_size = sizeof(pfx##hdr64[0].field);        \
++	else                                            \
++		_size = sizeof(pfx##hdr32[0].field);        \
++                                                    \
++	switch (_size)                                  \
++	{                                               \
++	case 1:                                         \
++		_val = val;                                 \
++		break;                                      \
++	case 2:                                         \
++		_val = is_be ? htobe16(val) : htole16(val); \
++		break;                                      \
++	case 4:                                         \
++		_val = is_be ? htobe32(val) : htole32(val); \
++		break;                                      \
++	case 8:                                         \
++		_val = is_be ? htobe64(val) : htole64(val); \
++		break;                                      \
++	default:                                        \
++		/* We should never reach here */            \
++		_val = 0;                                   \
++		assert(0);                                  \
++		break;                                      \
++	}                                               \
++                                                    \
++	if (is_64)                                      \
++		pfx##hdr64[idx].field = _val;               \
++	else                                            \
++		pfx##hdr32[idx].field = _val;               \
++})
++
++#define ehdr_field(field) \
++	hdr_field(e, 0, field)
++#define phdr_field(idx, field) \
++	hdr_field(p, idx, field)
++#define shdr_field(idx, field) \
++	hdr_field(s, idx, field)
++
++#define set_phdr_field(idx, field, val) \
++	set_hdr_field(p, idx, field, val)
++#define set_shdr_field(idx, field, val) \
++	set_hdr_field(s, idx, field, val)
++
++#define shstr(idx) (&shstrtab[idx])
++
++bool is_64, is_be;
++uint64_t text_base;
++
++Elf32_Sym *sym32;
++Elf64_Sym *sym64;
++uint32_t type_freq[256];
++
++void print_type_freq()
++{
++	for (int i = 0; i < 256; i++)
++	{
++		if (type_freq[i])
++			printf("freq %d : %d\n", i, type_freq[i]);
++	}
++}
++
++struct mips_reloc
++{
++	uint8_t type;
++	uint32_t offset;
++	uint32_t addend;
++} *relocs;
++size_t relocs_sz, relocs_idx;
++
++static int add_reloc(unsigned int type, uint32_t off, uint32_t addend, uint32_t sym)
++{
++	struct mips_reloc *new;
++	size_t new_sz;
++
++	switch (type)
++	{
++	case R_LARCH_32:
++	// case R_LARCH_SOP_PUSH_PCREL:
++	// case R_LARCH_SOP_PUSH_ABSOLUTE:
++	// case R_LARCH_SOP_PUSH_GPREL:
++	// case R_LARCH_SOP_PUSH_PLT_PCREL:
++	// case R_LARCH_SOP_SUB:
++	// case R_LARCH_SOP_SL:
++	// case R_LARCH_SOP_SR:
++	// case R_LARCH_SOP_ADD:
++	// case R_LARCH_SOP_POP_32_S_10_12:
++	// case R_LARCH_SOP_POP_32_S_10_16_S2:
++	// case R_LARCH_SOP_POP_32_S_5_20:
++	// case R_LARCH_SOP_POP_32_S_0_10_10_16_S2:
++		break;
++	default:
++		return 0;
++	}
++	type_freq[type] += 1;
++
++	if (relocs_idx == relocs_sz)
++	{
++		new_sz = relocs_sz ? relocs_sz * 2 : 128;
++		new = realloc(relocs, new_sz * sizeof(*relocs));
++		if (!new)
++		{
++			fprintf(stderr, "Out of memory\n");
++			return -ENOMEM;
++		}
++
++		relocs = new;
++		relocs_sz = new_sz;
++	}
++
++	relocs[relocs_idx++] = (struct mips_reloc){
++		.type = type,
++		.offset = off,
++		.addend = sym + addend
++	};
++
++	return 0;
++}
++
++static int parse_mips32_rel(const void *_rel)
++{
++	const Elf32_Rel *rel = _rel;
++	uint32_t off, type;
++
++	off = is_be ? be32toh(rel->r_offset) : le32toh(rel->r_offset);
++	off -= text_base;
++
++	type = is_be ? be32toh(rel->r_info) : le32toh(rel->r_info);
++	type = ELF32_R_TYPE(type);
++
++	return add_reloc(type, off, 0, 0);
++}
++
++static int parse_mips32_rela(const void *_rel)
++{
++	const Elf32_Rela *rel = _rel;
++	uint32_t off, type, sym;
++
++	type = is_be ? be32toh(rel->r_info) : le32toh(rel->r_info);
++	sym = ELF32_R_SYM(type);
++	type = ELF32_R_TYPE(type);
++	off = is_be ? be32toh(rel->r_offset) : le32toh(rel->r_offset);
++	sym = sym32[sym].st_value;
++	off -= text_base;
++
++	return add_reloc(type, off, rel->r_addend, sym);
++}
++
++static int parse_mips64_rela(const void *_rel)
++{
++	const Elf64_Rela *rel = _rel;
++	uint64_t off, type;
++
++	off = is_be ? be64toh(rel->r_offset) : le64toh(rel->r_offset);
++	off -= text_base;
++
++	type = rel->r_info >> (64 - 8);
++
++	return add_reloc(type, off, rel->r_addend, 0);
++}
++
++static void output_uint(uint8_t **buf, uint64_t val)
++{
++	uint64_t tmp;
++
++	do
++	{
++		tmp = val & 0x7f;
++		val >>= 7;
++		tmp |= !!val << 7;
++		*(*buf)++ = tmp;
++	} while (val);
++}
++
++static int compare_relocs(const void *a, const void *b)
++{
++	const struct mips_reloc *ra = a, *rb = b;
++
++	return ra->offset - rb->offset;
++}
++
++int main(int argc, char *argv[])
++{
++	unsigned int i, j, i_rel_shdr, sh_type, sh_entsize, sh_entries;
++	size_t rel_size, rel_actual_size;
++	const char *shstrtab, *sh_name, *rel_pfx;
++	int (*parse_fn)(const void *rel);
++	uint8_t *buf_start, *buf;
++	const Elf32_Ehdr *ehdr32;
++	const Elf64_Ehdr *ehdr64;
++	uintptr_t sh_offset;
++	Elf32_Shdr *shdr32,*shdr_got;
++	Elf64_Shdr *shdr64;
++	struct stat st;
++	int err, fd;
++	void *elf;
++	bool skip;
++
++	fd = open(argv[1], O_RDWR);
++	if (fd == -1)
++	{
++		fprintf(stderr, "Unable to open input file %s\n", argv[1]);
++		err = errno;
++		goto out_ret;
++	}
++
++	err = fstat(fd, &st);
++	if (err)
++	{
++		fprintf(stderr, "Unable to fstat() input file\n");
++		goto out_close_fd;
++	}
++
++	elf = mmap(NULL, st.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
++	if (elf == MAP_FAILED)
++	{
++		fprintf(stderr, "Unable to mmap() input file\n");
++		err = errno;
++		goto out_close_fd;
++	}
++
++	ehdr32 = elf;
++	ehdr64 = elf;
++
++	if (memcmp(&ehdr32->e_ident[EI_MAG0], ELFMAG, SELFMAG))
++	{
++		fprintf(stderr, "Input file is not an ELF\n");
++		err = -EINVAL;
++		goto out_free_relocs;
++	}
++
++	if (ehdr32->e_ident[EI_VERSION] != EV_CURRENT)
++	{
++		fprintf(stderr, "Unrecognised ELF version\n");
++		err = -EINVAL;
++		goto out_free_relocs;
++	}
++
++	switch (ehdr32->e_ident[EI_CLASS])
++	{
++	case ELFCLASS32:
++		is_64 = false;
++		break;
++	case ELFCLASS64:
++		is_64 = true;
++		break;
++	default:
++		fprintf(stderr, "Unrecognised ELF class\n");
++		err = -EINVAL;
++		goto out_free_relocs;
++	}
++
++	switch (ehdr32->e_ident[EI_DATA])
++	{
++	case ELFDATA2LSB:
++		is_be = false;
++		break;
++	case ELFDATA2MSB:
++		is_be = true;
++		break;
++	default:
++		fprintf(stderr, "Unrecognised ELF data encoding\n");
++		err = -EINVAL;
++		goto out_free_relocs;
++	}
++
++	if (ehdr_field(e_type) != ET_EXEC)
++	{
++		fprintf(stderr, "Input ELF is not an executable\n");
++		printf("type 0x%lx\n", ehdr_field(e_type));
++		err = -EINVAL;
++		goto out_free_relocs;
++	}
++
++	if (ehdr_field(e_machine) != 258)
++	{
++		fprintf(stderr, "Input ELF does not target LA32R %ld\n", ehdr_field(e_machine));
++		err = -EINVAL;
++		goto out_free_relocs;
++	}
++
++	shdr32 = elf + ehdr_field(e_shoff);
++	shdr64 = elf + ehdr_field(e_shoff);
++	shstrtab = elf + shdr_field(ehdr_field(e_shstrndx), sh_offset);
++
++	i_rel_shdr = UINT_MAX;
++	for (i = 0; i < ehdr_field(e_shnum); i++)
++	{
++		sh_name = shstr(shdr_field(i, sh_name));
++
++		if (!strcmp(sh_name, ".symtab"))
++		{
++			sym32 = elf + (unsigned long)shdr_field(i, sh_offset);
++			sym64 = elf + (unsigned long)shdr_field(i, sh_offset);
++			printf("sym is located in %x.\n",sym32);
++			continue;
++		}
++
++		if(!strcmp(sh_name, ".got")) {
++			shdr_got = shdr32 + i;
++			printf("got is located in %x with size %d.\n",shdr_got->sh_addr,shdr_got->sh_size);
++			continue;
++		}
++
++		if (!strcmp(sh_name, ".data.reloc"))
++		{
++			i_rel_shdr = i;
++			continue;
++		}
++
++		if (!strcmp(sh_name, ".text"))
++		{
++			text_base = shdr_field(i, sh_addr);
++			continue;
++		}
++	}
++	if (i_rel_shdr == UINT_MAX)
++	{
++		fprintf(stderr, "Unable to find .rel section\n");
++		err = -EINVAL;
++		goto out_free_relocs;
++	}
++	if (!text_base)
++	{
++		fprintf(stderr, "Unable to find .text base address\n");
++		err = -EINVAL;
++		goto out_free_relocs;
++	}
++
++	// rel_pfx = is_64 ? ".rela." : ".rel.";
++	rel_pfx = ".rela.";
++
++	for (i = 0; i < ehdr_field(e_shnum); i++)
++	{
++		sh_type = shdr_field(i, sh_type);
++		if ((sh_type != SHT_REL) && (sh_type != SHT_RELA))
++			continue;
++
++		sh_name = shstr(shdr_field(i, sh_name));
++		if (strncmp(sh_name, rel_pfx, strlen(rel_pfx)))
++		{
++			if (strcmp(sh_name, ".rel") && strcmp(sh_name, ".rel.dyn"))
++				fprintf(stderr, "WARNING: Unexpected reloc section name '%s'\n", sh_name);
++			continue;
++		}
++
++		/*
++		 * Skip reloc sections which either don't correspond to another
++		 * section in the ELF, or whose corresponding section isn't
++		 * loaded as part of the U-Boot binary (ie. doesn't have the
++		 * alloc flags set).
++		 */
++		skip = true;
++		for (j = 0; j < ehdr_field(e_shnum); j++)
++		{
++			if (strcmp(&sh_name[strlen(rel_pfx) - 1], shstr(shdr_field(j, sh_name))))
++				continue;
++
++			skip = !(shdr_field(j, sh_flags) & SHF_ALLOC);
++			break;
++		}
++		if (skip)
++			continue;
++
++		sh_offset = shdr_field(i, sh_offset);
++		sh_entsize = shdr_field(i, sh_entsize);
++		sh_entries = shdr_field(i, sh_size) / sh_entsize;
++
++		if (sh_type == SHT_REL)
++		{
++			if (is_64)
++			{
++				fprintf(stderr, "REL-style reloc in MIPS64 ELF?\n");
++				err = -EINVAL;
++				goto out_free_relocs;
++			}
++			else
++			{
++				parse_fn = parse_mips32_rel;
++			}
++		}
++		else
++		{
++			if (is_64)
++			{
++				parse_fn = parse_mips64_rela;
++			}
++			else
++			{
++				// fprintf(stderr, "RELA-style reloc in MIPS32 ELF?\n");
++				// err = -EINVAL;
++				// goto out_free_relocs;
++				parse_fn = parse_mips32_rela;
++			}
++		}
++
++		for (j = 0; j < sh_entries; j++)
++		{
++			err = parse_fn(elf + sh_offset + (j * sh_entsize));
++			if (err)
++				goto out_free_relocs;
++		}
++	}
++
++	/* Sort relocs in ascending order of offset */
++	// qsort(relocs, relocs_idx, sizeof(*relocs), compare_relocs);
++
++	/* Make reloc offsets relative to their predecessor */
++	for (i = relocs_idx - 1; i > 0; i--)
++		relocs[i].offset -= relocs[i - 1].offset;
++
++	/* Write the relocations to the .rel section */
++	buf = buf_start = elf + shdr_field(i_rel_shdr, sh_offset);
++	output_uint(&buf, shdr_got->sh_addr); // GOPT offset
++	output_uint(&buf, shdr_got->sh_size / 4); // GOPT size in word
++	
++	for (i = 0; i < relocs_idx; i++)
++	{
++		output_uint(&buf, relocs[i].type);
++		output_uint(&buf, relocs[i].offset >> 2);
++		output_uint(&buf, relocs[i].addend);
++	}
++
++	/* Write a terminating R_MIPS_NONE (0) */
++	output_uint(&buf, R_MIPS_NONE);
++
++	/* Ensure the relocs didn't overflow the .rel section */
++	rel_size = shdr_field(i_rel_shdr, sh_size);
++	rel_actual_size = buf - buf_start;
++	printf("rel_size is 0x%x, actual is 0x%x\n", rel_size, rel_actual_size);
++	if (rel_actual_size > rel_size)
++	{
++		fprintf(stderr, "Relocations overflow available space of 0x%lx (required 0x%lx)!\n",
++				rel_size, rel_actual_size);
++		fprintf(stderr, "Please adjust CONFIG_MIPS_RELOCATION_TABLE_SIZE to at least 0x%lx\n",
++				(rel_actual_size + 0x100) & ~0xFF);
++		err = -ENOMEM;
++		goto out_free_relocs;
++	}
++
++	/* Make sure data is written back to the file */
++	err = msync(elf, st.st_size, MS_SYNC);
++	if (err)
++	{
++		fprintf(stderr, "Failed to msync: %d\n", errno);
++		goto out_free_relocs;
++	}
++	print_type_freq();
++
++out_free_relocs:
++	free(relocs);
++	munmap(elf, st.st_size);
++out_close_fd:
++	close(fd);
++out_ret:
++	return err;
++}
+-- 
+2.39.2
+

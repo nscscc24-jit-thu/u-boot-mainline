@@ -1,0 +1,161 @@
+From 6917f651473bae0772c93969fc371c0b4456a69e Mon Sep 17 00:00:00 2001
+From: nscscc24-jit-thu <zhaohy22@mails.tsinghua.edu.cn>
+Date: Sun, 25 Aug 2024 20:28:39 +0800
+Subject: [PATCH 4/4] LoongArch: timer: use risc-v clint as external 33MHz
+ stable timer
+
+Signed-off-by: nscscc24-jit-thu <zhaohy22@mails.tsinghua.edu.cn>
+---
+ drivers/timer/Kconfig               |   7 ++
+ drivers/timer/Makefile              |   1 +
+ drivers/timer/loongarch_32r_timer.c | 108 ++++++++++++++++++++++++++++
+ 3 files changed, 116 insertions(+)
+ create mode 100644 drivers/timer/loongarch_32r_timer.c
+
+diff --git a/drivers/timer/Kconfig b/drivers/timer/Kconfig
+index 60519c3b53..3aab49e1e7 100644
+--- a/drivers/timer/Kconfig
++++ b/drivers/timer/Kconfig
+@@ -166,6 +166,13 @@ config GXP_TIMER
+ 	  Enables support for the GXP Timer driver. This timer is
+ 	  present on HPE GXP SoCs.
+ 
++config LOONGARCH_32R_TIMER
++	bool "LoongArch (32bit Reduced) timer support"
++	depends on TIMER && LOONGARCH
++	help
++	  Select this to enable driver for a generic LoongArch 32
++	  Reduced platform internal timer (Stable Counter).
++
+ config MPC83XX_TIMER
+ 	bool "MPC83xx timer support"
+ 	depends on TIMER
+diff --git a/drivers/timer/Makefile b/drivers/timer/Makefile
+index b93145e8d4..0fd3710557 100644
+--- a/drivers/timer/Makefile
++++ b/drivers/timer/Makefile
+@@ -15,6 +15,7 @@ obj-$(CONFIG_CADENCE_TTC_TIMER)	+= cadence-ttc.o
+ obj-$(CONFIG_DESIGNWARE_APB_TIMER)	+= dw-apb-timer.o
+ obj-$(CONFIG_FTTMR010_TIMER)	+= fttmr010_timer.o
+ obj-$(CONFIG_GXP_TIMER)		+= gxp-timer.o
++obj-$(CONFIG_LOONGARCH_32R_TIMER)		+= loongarch_32r_timer.o
+ obj-$(CONFIG_MPC83XX_TIMER) += mpc83xx_timer.o
+ obj-$(CONFIG_NOMADIK_MTU_TIMER)	+= nomadik-mtu-timer.o
+ obj-$(CONFIG_NPCM_TIMER)        += npcm-timer.o
+diff --git a/drivers/timer/loongarch_32r_timer.c b/drivers/timer/loongarch_32r_timer.c
+new file mode 100644
+index 0000000000..9576d9df78
+--- /dev/null
++++ b/drivers/timer/loongarch_32r_timer.c
+@@ -0,0 +1,108 @@
++#include <common.h>
++#include <asm/io.h>
++#include <div64.h>
++#include <dm.h>
++#include <errno.h>
++#include <fdt_support.h>
++#include <timer.h>
++
++struct la32r_timer_priv {
++	void __iomem *base;
++};
++
++static u64 notrace la32r_timer_get_count(struct udevice *dev)
++{
++	struct la32r_timer_priv *priv = dev_get_priv(dev);
++	u64 *ticks = priv->base;
++
++	return *ticks;
++}
++
++#if IS_ENABLED(CONFIG_TIMER_EARLY)
++/**
++ * timer_early_get_rate() - Get the timer rate before driver model
++ */
++unsigned long notrace timer_early_get_rate(void)
++{
++	return LOONGARCH_32R_TIMER_FREQ;
++}
++
++/**
++ * timer_early_get_count() - Get the timer count before driver model
++ *
++ */
++u64 notrace timer_early_get_count(void)
++{
++	return la32r_timer_get_count(NULL);
++}
++#endif
++
++#if CONFIG_IS_ENABLED(BOOTSTAGE)
++ulong timer_get_boot_us(void)
++{
++	int ret;
++	u64 ticks = 0;
++	u32 rate;
++
++	ret = dm_timer_init();
++	if (!ret) {
++		rate = timer_get_rate(gd->timer);
++		timer_get_count(gd->timer, &ticks);
++	} else {
++		rate = LOONGARCH_32R_TIMER_FREQ;
++		ticks = riscv_timer_get_count(NULL);
++	}
++
++	/* Below is converted from time(us) = (tick / rate) * 10000000 */
++	return lldiv(ticks * 1000, (rate / 1000));
++}
++#endif
++
++static int la32r_timer_of_to_plat(struct udevice *dev) {
++	struct la32r_timer_priv *priv = dev_get_priv(dev);
++
++	priv->base = (void *)map_physmem((phys_addr_t)dev_read_addr_ptr(dev), 0, MAP_NOCACHE);
++
++	debug("la32r_timer: map timer into 0x%08x\n", (u32)priv->base);
++
++	return 0;
++}
++
++static int la32r_timer_probe(struct udevice *dev)
++{
++	struct timer_dev_priv *uc_priv = dev_get_uclass_priv(dev);
++	u32 rate;
++
++	rate = fdt_getprop_u32_default(gd->fdt_blob,
++				"/stable-counter", "timebase-frequency", 0);
++
++	uc_priv->clock_rate = rate;
++
++	/* With rate==0, timer uclass post_probe might later fail with -EINVAL.
++	 * Give a hint at the cause for debugging.
++	 */
++	if (!rate)
++		log_err("la32r_timer: probed with invalid clock rate 0!\n");
++
++	return 0;
++}
++
++static const struct timer_ops la32r_timer_ops = {
++	.get_count = la32r_timer_get_count,
++};
++
++static const struct udevice_id la32r_timer_ids[] = {
++	{ .compatible = "loongson,la32r-timer", },
++	{ }
++};
++
++U_BOOT_DRIVER(la32r_timer) = {
++	.name = "la32r-timer",
++	.id = UCLASS_TIMER,
++	.of_match = of_match_ptr(la32r_timer_ids),
++	.of_to_plat	= la32r_timer_of_to_plat,
++	.priv_auto	= sizeof(struct la32r_timer_priv),
++	.probe = la32r_timer_probe,
++	.ops = &la32r_timer_ops,
++	.flags = DM_FLAG_PRE_RELOC,
++};
+-- 
+2.39.2
+
